@@ -1,0 +1,9 @@
+(function () {
+	if ('Handlebars' in this) {
+		const revive = Handlebars.template;
+		Handlebars.templates = Handlebars.templates || {};
+	{{#templates}}
+		Handlebars.templates['{{{name}}}'] = revive({{{template}}});
+	{{/templates}}
+	}
+}());

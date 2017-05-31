@@ -1,24 +1,29 @@
 {
-  "name": "demo-progressive-web-app",
+  "name": "fastly-pwa-prpl-edge",
+  "private": true,
   "description": "Demo progressive web application",
   "version": "1.0.0",
-  "author": "gokulkrishh",
+  "author": "triblondon",
   "dependencies": {
     "body-parser": "^1.15.0",
+    "dotenv": "^4.0.0",
     "express": "^4.13.4",
-    "node-gcm": "^0.14.0"
+    "express-handlebars": "^3.0.0",
+    "feedparser": "^2.2.0",
+    "handlebars": "^4.0.8",
+    "node-fetch": "^1.6.3",
+    "node-gcm": "^0.14.0",
+    "object.map": "^1.0.0",
+    "on-headers": "^1.0.1"
   },
   "engines": {
-    "node": "4.1.1"
+    "node": "7.9.0"
   },
   "scripts": {
-    "start": "npm run css && node server.js",
-    "css": "postcss -u autoprefixer -r css/*",
-    "postinstall": "npm run start"
+    "start": "node server/server.js",
+    "start-dev": "nodemon server/server.js",
+    "deploy": "gcloud app deploy"
   },
   "license": "MIT",
-  "devDependencies": {
-    "autoprefixer": "^6.4.0",
-    "postcss-cli": "^2.6.0"
-  }
+  "devDependencies": {}
 }

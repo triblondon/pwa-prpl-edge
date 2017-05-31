@@ -1,0 +1,63 @@
+    </div> <!-- /app__content -->
+
+    <footer class='footer'>
+      <h2>How this page got to you</h2>
+      <div class='netinfo' id='netinfo'>
+        <div class='netinfo__you netinfo__node'>
+          <img src='/images/icons/laptop.svg' alt='Laptop representing you' />
+          <h3>You</h3>
+          <ul>
+            <li><span data-netinfo='clientCity'>Locating...</span></li>
+            <li><span data-netinfo='clientIP'></span></li>
+          </ul>
+        </div>
+        <div class='netinfo__conn netinfo__conn--client'>
+          <div class='netinfo__connlabel'><span data-netinfo='sendTimeMS'></span>ms</div>
+          <div class='netinfo__connline netinfo__connline--right'></div>
+          <div class='netinfo__connlabel'></div>
+          <div class='netinfo__connline netinfo__connline--left'></div>
+          <div class='netinfo__connlabel'><span data-netinfo='resTimeMS'></span>ms</div>
+          <div class='netinfo__connlabel netinfo__connlabel--bottom'><span data-netinfo='clientDistance'></span>km</div>
+        </div>
+        <div class='netinfo__offline netinfo__node'>
+          <img src='/images/icons/offline.svg' alt='Offline' />
+          <h3>Internet</h3>
+        </div>
+        <div class='netinfo__offline netinfo__descr'>
+          <p>When you loaded this page, you had no internet connection, so you are seeing content that has been previously downloaded and stored on your device.</p>
+        </div>
+        <div class='netinfo__fastly netinfo__node'>
+          <img src='/images/icons/fastly.svg' alt='Fastly logo' />
+          <h3>Fastly</h3>
+          <ul>
+            <li><span data-netinfo='edgeCity'>Locating...</span></li>
+            <li><span data-netinfo='edgeIP'></span></li>
+            <li>(<span data-netinfo='edgeID'></span>)</li>
+          </ul>
+        </div>
+        <div class='netinfo__conn netinfo__conn--backend'>
+          <div class='netinfo__connlabel'></div>
+          <div class='netinfo__connline netinfo__connline--right'></div>
+          <div class='netinfo__connlabel'><span data-netinfo='edgeCacheState'></span>, <span data-netinfo='edgeElapsedTimeMS'></span>ms (hits: <span data-netinfo='edgeCacheHitCount'></span>)</div>
+          <div class='netinfo__connline netinfo__connline--left'></div>
+          <div class='netinfo__connlabel'></div>
+          <div class='netinfo__connlabel netinfo__connlabel--bottom'><span data-netinfo='backendDistance'></span>km</div>
+        </div>
+        <div class='netinfo__backend netinfo__node'>
+          <img src='/images/icons/server.svg' alt='Server' />
+          <h3>Origin</h3>
+          <ul>
+            <li><span data-netinfo='backendCity'>Locating...</span></li>
+            <li><span data-netinfo='backendIP'></span></li>
+          </ul>
+        </div>
+      </div>
+    </footer>
+  </div> <!-- /app__layout -->
+
+  <script src="/js/sw-connect.js" defer></script>
+  <script src="/js/net-info.js" defer></script>
+  <script src="/js/purge.js" defer></script>
+  <script src="/js/analytics.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+<h1>{{article.title}}</h1>
+
+<div class='article-body'>
+	{{{article.summary}}}
+</div>
+
+<div class='article-footer'>
+	<ul class='tag-list'>
+		{{#each article.categories }}<li class='tag'><a href='/topics/{{{slug}}}'>{{label}}</a></li>{{/each}}
+	</ul>
+  <p class='actions'>
+    <button class='dangerous' data-purge='{{article.id}}'>Suspend article</button>
+</div>

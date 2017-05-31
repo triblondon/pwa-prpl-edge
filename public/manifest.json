@@ -1,0 +1,26 @@
+{
+  "name": "Fastly Progressive web app demo",
+  "short_name": "Fastly PWA",
+  "description": "Demo for progressive web app with edge-optimised delivery",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#e82c2a",
+  "icons": [{
+      "src": "./images/icons/192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "./images/icons/512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+  }],
+  "author": {
+    "name": "Andrew Betts",
+    "website": "https://www.fastly.com",
+    "github": "https://github.com/fastly",
+    "source-repo": "https://github.com/fastly/demo-progressive-web-app"
+  }
+}

@@ -1,0 +1,11 @@
+{{#if topic }}
+<p class='topic'>Topic: <strong>{{topic}}</strong></p>
+{{/if}}
+
+<ul class='card-list'>
+	{{#each articles}}
+	<li class='card'>
+		<h2><a href='/articles/{{{id}}}'>{{title}}</a></h2>
+	</li>
+	{{/each}}
+</ul>

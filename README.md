@@ -1,79 +1,70 @@
-### <p align="center"><img width="150px" height="150px" src="https://gokulkrishh.github.io/demo-progressive-web-app/images/icons/android-chrome-192x192.png"></p>
+# Demo Progressive web app, with optimised network delivery
 
-# [Progressive Web Application](https://demopwa.in)
+- [ ] Add images (article.enclosures[0].url, .width)
 
-*A demo for progressive web application with features like offline, push notifications, background sync etc,*
+## What this app demonstrates
 
-### [Live](https://demopwa.in)
+- [ ] Force TLS
+- [x] SVGO
+
+### Standard headers
+
+[x] CORS (VCL)
+[x] CSP (VCL)
+[x] HSTS and TLS redirect (VCL)
+[x] Frame options (VCL)
+[x] Serve-stale (VCL)
+
+### Understand the cache
+
+[x] Output cache state info in a cookie (VCL)
+[x] Display cache state information (server.datacenter, fastly_info.state, time.elapsed.usec, req.http.X-Cache-Hits, req., Age, client.ip, server.ip, geo.latitude, geo.longitude, beresp.backend.ip)
+[x] Make client geo more accurate with geolocation API
+[x] Add Server Timing data in backend
+[x] Deal with 304 responses
+[ ] Surface server timing data in UI
+[ ] Fingerprint the static files
+[x] Don't cache surrogate-key-enhanced responses on the client-side
+
+### Stream splicing in serviceworker
+
+[x] Use SW to intercept navigations and add ?frag=1
+[x] Serve fragments based on query param
+[x] Import header and footer templates into SW
+[x] Combine frags with header and footer using Streams in SW
+[ ] Navigation preload
+
+### Offline mode
+
+[x] Display an offline frag if the frag we need is not available
+[ ] Download articles for offline viewing into a dynamic cache
+
+### Server push
+
+[ ] Add link headers to any full page request
+[ ] Make sure all Pushed resources are cachable
+
+### Purging
+
+[x] Add appropriate surrogate keys to all pages
+[x] Add button to hide an article for 20 mins (surrogate key purge)
+[x] Maintain a suppression list on the server
+[x] Send purge of surrogate keys
+[ ] Surface the number of pages purged
+
+### PWA
+
+[ ] Add to home screen
+[ ] Online/offline indicator
+
+### Push
+
+[ ] Silent push
+
 
 ### Installation
 
-#### `Step 1` - clone the repo
-  
-```bash
-$ git clone https://github.com/gokulkrishh/demo-progressive-web-app
-```
-
-#### `Step 2` - cd in the repo
-
-```bash
-$ cd demo-progressive-web-app
-```
-
-#### `Step 3` - install dependencies
-
-```bash
-$ npm install
-```
-
-#### `Step 4` - run application
-
-```bash
-$ npm run start
-```
-
-In browser, open [http://localhost:3000](http://localhost:3000)
-
-## Main Features
-
-- [x] - App Shell Architecture
-
-- [x] - Service Worker + [Navigation Preload](https://mattto.github.io/sw/demo/navigation-preload/) ([Origin Trial](https://docs.google.com/forms/d/e/1FAIpQLSfO0_ptFl8r8G0UFhT0xhV17eabG-erUWBDiKSRDTqEZ_9ULQ/viewform?fbzx=-8349956695398695000))
-
-- [x] - Add to Home Screen, Splash Screen, Browser Mode, Notify user if site is updated etc,
-
-- [x] - Offline Support
-
-- [x] - Online/Offline Events
-
-- [x] - Fetch API
-
-- [x] - Push Notifications
-
-- [x] - Background Sync
-
-- [x] - Web Share ([Origin Trial](https://docs.google.com/forms/d/e/1FAIpQLSfO0_ptFl8r8G0UFhT0xhV17eabG-erUWBDiKSRDTqEZ_9ULQ/viewform?fbzx=-8349956695398695000))
-
-### Get started with PWA Development
-
-- [Codelabs](https://pwa.tips/codelabs)
-
-### List of Progressive Web Apps
-
-- [PWA Rocks](https://pwa.rocks)
-
-### References
-
-- [Google Developer Site](https://developers.google.com/web/progressive-web-apps)
-
-- [Web Share API](https://developers.google.com/web/updates/2016/10/navigator-share)
-
-- [Navigation Preload](https://developers.google.com/web/updates/2017/02/navigation-preload)
-
-#### License
-
-MIT © [Gokulakrishnan](https://github.com/gokulkrishh)
-
-<div align="center">
-  <sub>If you found a bug or some improvments, feel free to raise an issue and send a PR!</sub>
-</div>
+1. Clone the repo
+2. npm install
+3. npm run start
+4. In browser, open [http://localhost:3100](http://localhost:3100)
