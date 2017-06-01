@@ -19,11 +19,13 @@ const staticFiles = [
   './js/net-info.js',
   './js/purge.js',
   './js/analytics.js',
+  './js/sw-connect.js',
   './images/icons/16x16.png',
   './images/icons/32x32.png',
   './images/icons/laptop.svg',
   './images/icons/fastly.svg',
   './images/icons/server.svg',
+  './images/icons/offline.svg',
   './images/fastly-logo.svg',
   './images/guardian-logo.svg',
   './manifest.json'
@@ -36,18 +38,22 @@ self.addEventListener('install', (event) => {
   console.log('[SW] Install');
 
   event.waitUntil(
-    caches.open(cacheName)
-    .then((cache) => {
-      return cache.addAll(staticFiles)
-      .then(() => {
-        console.info('[SW] Caching complete');
+    Promise.all([
+      fetch("/dynamic-page-list")
+        .then(resp => resp.json())
+        .then(urlList => caches.open(cacheName+'-dynamic').then(cache => cache.addAll(urlList)))
+      ,
+      caches.open(cacheName+'-static')
+        .then(cache => cache.addAll(staticFiles))
+    ])
+    .then(() => {
+      console.info('[SW] Shell caching complete');
 
-        // Force the waiting service worker to become the active service worker
-        return self.skipWaiting();
-      })
-      .catch((error) =>  {
-        console.error('[SW] Failed to build SW cache', error);
-      })
+      // Force the waiting service worker to become the active service worker
+      return self.skipWaiting();
+    })
+    .catch((error) =>  {
+      console.error('[SW] Failed to build SW cache', error);
     })
   );
 });
@@ -55,34 +61,39 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', event => {
   const fragUrl = new URL(event.request.url);
   fragUrl.searchParams.set('frag', 1);
-  const fetchReq = (!corsHosts.includes(fragUrl.host)) ? event.request : new Request(fragUrl.toString(), { mode: 'cors' });
+  const fetchReq = (!corsHosts.includes(fragUrl.host)) ? event.request : new Request(fragUrl.toString(), { mode: 'cors', credentials: 'include' });
 
-  const responsePromise = Promise.resolve()
-    .then(() => caches.match(event.request.url))       // Full page match in static cache
-    .then(r => r || caches.match(fragUrl.toString()))  // Frag match in static cache
-    .then(r => r || event.preloadResponse)             // Pending preloadResponse (could be frag or not)
-    .then(r => r || fetch(fetchReq))                   // Fall back to fetch, allow server to send frag if it wants to
-    .then(r => {
-      //console.log('[SW] Fetch', fetchReq, r);
-      if (r.headers.get('Fragment')) {                 // If the server sent a frag, merge it with header/footer
-        const mergedResp = mergeResponses([
-          new Response(Handlebars.templates.header(), {}),
-          r,
-          new Response(Handlebars.templates.footer(), {})
-        ], r.headers);
-        console.log('[SW] Merging frag for ' + r.url);
-        return mergedResp;
-      } else {
-        return r;
-      }
-    })
+  // Cache-first for shell, network-first for content
+  const responsePromise = Promise.all([caches.open(cacheName+'-static'), caches.open(cacheName+'-dynamic')])
+    .then(([staticCache, dynamicCache]) => Promise.resolve()
+      .then(() => staticCache.match(event.request.url))       // Full page match in static cache
+      .then(r => r || staticCache.match(fragUrl.toString()))  // Frag match in static cache
+      .then(r => r || event.preloadResponse)                  // Pending preloadResponse (could be frag or not)
+      .then(r => r || (fetch(fetchReq)                        // Network fetch, allow server to send frag if it wants to
+        .catch(err => dynamicCache.match(fetchReq))           // On network failure, try dynamic cache
+      ))
+      .then(r => {
+        if (!r) throw new Error('No response available');
+        //console.log('[SW] Fetch', fetchReq, r);
+        if (r.headers.get('Fragment')) {                 // If the server sent a frag, merge it with header/footer
+          const mergedResp = mergeResponses([
+            new Response(Handlebars.templates.header(), {}),
+            r,
+            new Response(Handlebars.templates.footer(), {})
+          ], r.headers);
+          console.log('[SW] Merging frag for ' + r.url);
+          return mergedResp;
+        } else {
+          return r;
+        }
+      })
+    )
     .catch(err => {
       console.log("[SW] Fetch fail for "+event.request.url, err.message);
       return caches.match('/offline');
     })
   ;
 
-  // Use a cache-first strategy
   event.respondWith(responsePromise);
 });
 
@@ -101,7 +112,7 @@ self.addEventListener('activate', (event) => {
     caches.keys()
       .then(cacheNames => Promise.all(
         cacheNames.map(existingCacheName => {
-          if (existingCacheName !== cacheName) {
+          if (!existingCacheName.startsWith(cacheName)) {
             console.log("[SW] Deleted outdated cache called " + existingCacheName);
             return caches.delete(existingCacheName);
           }

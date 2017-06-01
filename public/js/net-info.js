@@ -61,6 +61,8 @@ if ((typeof offline !== 'undefined' && offline) || connectionType === 'none') {
         tcpTimeMS: Math.round(connData.connectEnd - connData.connectStart),
         reqTimeMS: Math.round(connData.responseStart - connData.requestStart),
         resTimeMS: Math.round(connData.responseEnd - connData.responseStart),
+        navigationStart: connData.navigationStart,
+        responseEnd: connData.responseEnd,
         transferSize: connData.transferSize,
         encodedBodySize: connData.encodedBodySize,
         decodedBodySize: connData.decodedBodySize
@@ -94,11 +96,17 @@ if ((typeof offline !== 'undefined' && offline) || connectionType === 'none') {
 
     // Calculate derived data and populate page
     .then(() => {
-      netInfo.clientDistance = Math.round(distance(netInfo.clientLat, netInfo.clientLng, netInfo.edgeLat, netInfo.edgeLng, 'K'));
-      netInfo.backendDistance = Math.round(distance(netInfo.backendLat, netInfo.backendLng, netInfo.edgeLat, netInfo.edgeLng, 'K'));
-      netInfo.overheadMS = performance.timing.responseEnd - performance.timing.navigationStart - netInfo.dnsTimeMS - netInfo.tcpTimeMS - netInfo.reqTimeMS - netInfo.resTimeMS;
+      if ('clientLat' in netInfo && 'edgeLat' in netInfo) {
+        netInfo.clientDistance = Math.round(distance(netInfo.clientLat, netInfo.clientLng, netInfo.edgeLat, netInfo.edgeLng, 'K'));
+      }
+      if ('backendLat' in netInfo && 'edgeLat' in netInfo) {
+        netInfo.backendDistance = Math.round(distance(netInfo.backendLat, netInfo.backendLng, netInfo.edgeLat, netInfo.edgeLng, 'K'));
+      }
+      if ('clientCity' in netInfo) {
+        netInfo['clientCity'] = netInfo['clientCity'].replace(/\b\w/g, l => l.toUpperCase());
+      }
+      netInfo.overheadMS = netInfo.responseEnd - netInfo.navigationStart - netInfo.dnsTimeMS - netInfo.tcpTimeMS - netInfo.reqTimeMS - netInfo.resTimeMS;
       netInfo.sendTimeMS = netInfo.dnsTimeMS + netInfo.tcpTimeMS + netInfo.reqTimeMS;
-      netInfo['clientCity'] = netInfo['clientCity'].replace(/\b\w/g, l => l.toUpperCase());
       document.getElementById('netinfo').querySelectorAll('[data-netinfo]').forEach(el => {
         el.innerHTML = netInfo[el.dataset.netinfo];
       });

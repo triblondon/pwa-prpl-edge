@@ -26,6 +26,16 @@
 - [ ] Fingerprint the static files
 - [x] Don't cache surrogate-key-enhanced responses on the client-side
 
+#### Loading scenarios
+
+1. No serviceworker, online, full page response (Shift-reload)
+  - Works for Fastly HIT, Works for Fastly MISS
+2. No serviceworker, 304 Not modified (renavigate to the page with 'bypass for network')
+  - Works for Fastly HIT
+3. Frag via serviceworker (clear cache -> click article)
+4. Frag via serviceworker, 304 Not modified (click back to home, click article again)
+5. Offline
+
 ### Stream splicing in serviceworker
 
 - [x] Use SW to intercept navigations and add ?frag=1

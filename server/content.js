@@ -60,6 +60,11 @@ setInterval(pruneSuspended, Math.round(SUSPEND_TIME_MS/10));
 
 
 module.exports = {
+  getArticleIDs: () => articles.map(a => a.id),
+  getTopics: () => Array.from(articles.reduce((tset, a) => {
+    (a.categories || []).forEach(t => tset.add(t.slug));
+    return tset;
+  }, new Set())),
   getArticlesbyTopic: topicid => articles.filter(article => article.categories.find(cat => cat.slug === topicid)).slice(0,10),
   getArticles: () => articles.slice(0,10),
   getArticle: id => articles.find(article => article.id === id),

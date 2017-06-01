@@ -44,7 +44,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // For non-static assets, allow caching at the edge but not in the browser
 app.use(function(req, res, next) {
-  res.set('Cache-Control', 'max-age=0; must-revalidate; s-maxage=31536000; append-metadata');
+  res.set('Cache-Control', 'max-age=31536000; append-metadata');
   next();
 });
 
