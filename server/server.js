@@ -6,12 +6,8 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const gcm = require('node-gcm');
-const staticify = require('./lib/static-assets');
-const hbs = require('./lib/view-engine')({helpers:{getVersionedPath: staticify.getVersionedPath}});
-
-// Copy the public files to a working folder
-// Instantiate staticify with the working folder
-// use staticify._versions to iterate over the files and do the replacements
+const serveStatic = require('./lib/static-assets');
+const hbs = require('./lib/view-engine')({helpers:{getVersionedPath: serveStatic.getVersionedPath}});
 
 const PORT = process.env.PORT || 3100;
 
@@ -19,12 +15,17 @@ const app = express();
 
 app.engine('.hbs', hbs.engine);
 app.set('view engine', '.hbs');
+
+// Serve static assets
+app.use(serveStatic.middleware);
+
+// Make template partials available to front end for use in ServiceWorker
 app.use(hbs.exposeTemplates);
 
+// Measure and report execution time using server-timing API
 app.use(require('./lib/exec-time.js'));
 
-
-// Parse request bodies to enable web push
+// Parse request bodies
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
@@ -40,22 +41,17 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static assers from /static (TODO: version stamp these and allow them to be cached)
+// Allow caching at the edge, but not in the browser (to allow purging)
 app.use(function(req, res, next) {
-  res.set('Cache-Control', 'max-age=60');
-  next();
-});
-app.use(staticify.middleware);
-
-// For non-static assets, allow caching at the edge but not in the browser
-app.use(function(req, res, next) {
-  res.set('Cache-Control', 'max-age=31536000; append-metadata');
+  res.set('Cache-Control', 'max-age=0; s-maxage=31536000; append-metadata');
   next();
 });
 
+// Process requests
 app.use(require('./routes/main'));
 app.use(require('./routes/shell'));
 
+// Return a 404 if no routes match
 app.use((req, res, next) => {
   if (req.app.locals.frag) res.set('Fragment', 1);
   res.status(404).render("not-found");
