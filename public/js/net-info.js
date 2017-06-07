@@ -44,10 +44,8 @@ const getEdgeTimingData = () => {
   }
 }
 
-const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-const connectionType = connection.type;
 
-if ((typeof offline !== 'undefined' && offline) || connectionType === 'none') {
+if (!navigator.onLine) {
     document.getElementById('netinfo').classList.add('netinfo--offline');
 } else {
 

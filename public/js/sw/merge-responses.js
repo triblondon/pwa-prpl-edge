@@ -1,4 +1,4 @@
-async function mergeResponses(responsePromises, headers) {
+function mergeResponses(responsePromises, headers) {
   const readers = responsePromises.map(p => Promise.resolve(p).then(r => r.body.getReader()));
   let doneResolve;
   let doneReject;
@@ -36,9 +36,8 @@ async function mergeResponses(responsePromises, headers) {
     }
   });
 
-  const response = await responsePromises[0];
-
-  return new Response(readable, {
-    headers: headers || response.headers
-  });
+  return {
+    done: done,
+    response: new Response(readable, {headers: headers})
+  };
 }

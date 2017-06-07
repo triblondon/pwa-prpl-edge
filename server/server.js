@@ -6,8 +6,12 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const gcm = require('node-gcm');
-const hbs = require('./lib/view-engine');
+const staticify = require('./lib/static-assets');
+const hbs = require('./lib/view-engine')({helpers:{getVersionedPath: staticify.getVersionedPath}});
 
+// Copy the public files to a working folder
+// Instantiate staticify with the working folder
+// use staticify._versions to iterate over the files and do the replacements
 
 const PORT = process.env.PORT || 3100;
 
@@ -15,6 +19,7 @@ const app = express();
 
 app.engine('.hbs', hbs.engine);
 app.set('view engine', '.hbs');
+app.use(hbs.exposeTemplates);
 
 app.use(require('./lib/exec-time.js'));
 
@@ -37,10 +42,10 @@ app.use((req, res, next) => {
 
 // Serve static assers from /static (TODO: version stamp these and allow them to be cached)
 app.use(function(req, res, next) {
-  res.set('Cache-Control', 'no-cache');
+  res.set('Cache-Control', 'max-age=60');
   next();
 });
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(staticify.middleware);
 
 // For non-static assets, allow caching at the edge but not in the browser
 app.use(function(req, res, next) {

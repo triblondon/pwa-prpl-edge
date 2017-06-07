@@ -1,10 +1,36 @@
 # Demo Progressive web app, with optimised network delivery
 
+## Priorities
+
+- [ ] Get net info to show up reliably
+  - [ ] Cache results of geoIP lookups
+- [ ] Static resource hashing
+- [ ] Purging using surrogate keys
+- [ ] Stream header in before body headers arrive (but then we don't know HTTP status, and we miss the cookie).  Streamcombiner, 
+
+#### Loading scenarios
+
+1. No serviceworker, online, full page response (Shift-reload)
+  - Works for Fastly HIT, Works for Fastly MISS
+2. No serviceworker, 304 Not modified (renavigate to the page with 'bypass for network')
+  - Works for Fastly HIT
+3. Frag via serviceworker (clear cache -> click article)
+4. Frag via serviceworker, 304 Not modified (click back to home, click article again)
+5. Offline
+
+## Types of requests
+
+- Page navigations: rewrite to frag, cors, withcreds
+- Assets: Use static if available, cors
+- Freegeoip: cors
+
+## TODOs
+
 - [ ] Add images (article.enclosures[0].url, .width)
 
 ## What this app demonstrates
 
-- [ ] Force TLS
+- [x] Force TLS
 - [x] SVGO
 
 ### Standard headers
@@ -14,6 +40,7 @@
 - [x] HSTS and TLS redirect (VCL)
 - [x] Frame options (VCL)
 - [x] Serve-stale (VCL)
+- [x] Referrer policy (VCL)
 
 ### Understand the cache
 
@@ -25,16 +52,6 @@
 - [ ] Surface server timing data in UI
 - [ ] Fingerprint the static files
 - [x] Don't cache surrogate-key-enhanced responses on the client-side
-
-#### Loading scenarios
-
-1. No serviceworker, online, full page response (Shift-reload)
-  - Works for Fastly HIT, Works for Fastly MISS
-2. No serviceworker, 304 Not modified (renavigate to the page with 'bypass for network')
-  - Works for Fastly HIT
-3. Frag via serviceworker (clear cache -> click article)
-4. Frag via serviceworker, 304 Not modified (click back to home, click article again)
-5. Offline
 
 ### Stream splicing in serviceworker
 

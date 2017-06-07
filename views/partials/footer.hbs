@@ -4,7 +4,7 @@
       <h2>How this page got to you</h2>
       <div class='netinfo' id='netinfo'>
         <div class='netinfo__you netinfo__node'>
-          <img src='/images/icons/laptop.svg' alt='Laptop representing you' />
+          <img src='{{getVersionedPath "/images/icons/laptop.svg"}}' alt='Laptop representing you' />
           <h3>You</h3>
           <ul>
             <li><span data-netinfo='clientCity'>Locating...</span></li>
@@ -20,14 +20,14 @@
           <div class='netinfo__connlabel netinfo__connlabel--bottom'><span data-netinfo='clientDistance'></span>km</div>
         </div>
         <div class='netinfo__offline netinfo__node'>
-          <img src='/images/icons/offline.svg' alt='Offline' />
+          <img src='{{getVersionedPath "/images/icons/offline.svg"}}' alt='Offline' />
           <h3>Internet</h3>
         </div>
         <div class='netinfo__offline netinfo__descr'>
           <p>When you loaded this page, you had no internet connection, so you are seeing content that has been previously downloaded and stored on your device.</p>
         </div>
         <div class='netinfo__fastly netinfo__node'>
-          <img src='/images/icons/fastly.svg' alt='Fastly logo' />
+          <img src='{{getVersionedPath "/images/icons/fastly.svg"}}' alt='Fastly logo' />
           <h3>Fastly</h3>
           <ul>
             <li><span data-netinfo='edgeCity'>Locating...</span></li>
@@ -44,7 +44,7 @@
           <div class='netinfo__connlabel netinfo__connlabel--bottom'><span data-netinfo='backendDistance'></span>km</div>
         </div>
         <div class='netinfo__backend netinfo__node'>
-          <img src='/images/icons/server.svg' alt='Server' />
+          <img src='{{getVersionedPath "/images/icons/server.svg"}}' alt='Server' />
           <h3>Origin</h3>
           <ul>
             <li><span data-netinfo='backendCity'>Locating...</span></li>
@@ -55,9 +55,9 @@
     </footer>
   </div> <!-- /app__layout -->
 
-  <script src="/js/sw-connect.js" defer></script>
-  <script src="/js/net-info.js" defer></script>
-  <script src="/js/purge.js" defer></script>
-  <script src="/js/analytics.js" defer></script>
+  <script src="{{getVersionedPath "/js/sw-connect.js"}}" defer></script>
+  <script src="{{getVersionedPath "/js/net-info.js"}}" defer></script>
+  <script src="{{getVersionedPath "/js/purge.js"}}" defer></script>
+  <script src="{{getVersionedPath "/js/analytics.js"}}" defer></script>
   </body>
 </html>

@@ -1,10 +1,9 @@
 const express = require('express');
-const hbs = require('../lib/view-engine');
 const fetch = require('node-fetch');
 
 const router = express.Router();
 
-router.get('/shell', hbs.exposeTemplates, (req, res) => {
+router.get('/shell', (req, res) => {
   res.set('Content-Type', 'application/javascript');
 	res.render('shell', {layout:false});
 });

@@ -14,7 +14,8 @@
     "node-fetch": "^1.6.3",
     "node-gcm": "^0.14.0",
     "object.map": "^1.0.0",
-    "on-headers": "^1.0.1"
+    "on-headers": "^1.0.1",
+    "staticify": "0.0.7"
   },
   "engines": {
     "node": "7.9.0"
