@@ -25,14 +25,6 @@ const articleHandler = (req, res, next) => {
   res.render('article', {article});
 };
 
-const pageListHandler = (req, res, next) => {
-  res.json([].concat(
-    content.getArticleIDs().map(id => "/articles/"+id+"?frag=1"),
-    content.getTopics().map(topic => "/topics/"+topic+"?frag=1")
-  ));
-};
-
-
 const purgeHandler = (req, res) => {
   console.log('Purge handler', req.body, req.body.id);
   const article = content.getArticle(req.body.id);
@@ -56,7 +48,6 @@ const purgeHandler = (req, res) => {
 router.get('/', indexHandler);
 router.get('/topics/:topic', indexHandler);
 router.get('/articles/:id', articleHandler);
-router.get('/dynamic-page-list', pageListHandler);
 router.post('/suspend-article', purgeHandler);
 
 module.exports = router;

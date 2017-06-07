@@ -13,6 +13,7 @@ deleteDir(BUILD_DIR);
 copyDir(SOURCE_DIR, BUILD_DIR);
 
 const inst = Staticify(BUILD_DIR);
+
 Object.keys(inst._versions).forEach(filePath => {
   const absPath = path.join(BUILD_DIR, filePath);
   const mimeType = mime.lookup(absPath);

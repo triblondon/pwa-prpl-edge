@@ -1,9 +1,9 @@
-{{#unless frag }}
+{{#if withHeader }}
 	{{>header}}
-{{/unless}}
+{{/if}}
 
 {{{body}}}
 
-{{#unless frag }}
+{{#if withFooter }}
 	{{>footer}}
-{{/unless}}
+{{/if}}

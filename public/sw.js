@@ -1,36 +1,25 @@
-importScripts('/js/sw/handlebars-runtime.js');
 importScripts('/js/sw/merge-responses.js');
-importScripts('/shell');
 
-const cacheName = 'cache-v7';
-const corsHosts = [
-  'freegeoip.net',
-  location.host
-];
+function promiseTimer(duration, resolution) {
+  return new Promise ((resolve, reject) => {
+    setTimeout((resolution === 'resolve') ? resolve : reject, duration);
+  });
+}
 
-// Files to save in cache (TODO: Can we send an 'accept-fragment' header here to avoid the querystring param and enable Vary?)
-const staticFiles = [
+function addCookie(resp, data) {
+  const cookieStr = "CacheStats="+JSON.stringify(data)+'; Max-Age=5; path=/;';
+  const headers = new Headers({'Set-Cookie': cookieStr});
+  resp.headers.forEach((v, k) => headers.append(k, v));
+  return new Response(resp.body, {
+    status: resp.status,
+    statusText: resp.statusText,
+    headers: headers
+  });
+}
 
-  './?frag=1',
-  './offline',
-  'https://fonts.googleapis.com/css?family=Raleway:300,400,500,600,700',
-  './css/styles.css',
-  './css/ux-platform.css',
-  './js/net-info.js',
-  './js/purge.js',
-  './js/analytics.js',
-  './js/sw-connect.js',
-  './images/icons/16x16.png',
-  './images/icons/32x32.png',
-  './images/icons/laptop.svg',
-  './images/icons/fastly.svg',
-  './images/icons/server.svg',
-  './images/icons/offline.svg',
-  './images/fastly-logo.svg',
-  './images/guardian-logo.svg',
-  './manifest.json'
-];
-
+const NETWORK_TIMEOUT_SHORT = 1000;
+const NETWORK_TIMEOUT_LONG = 5000;
+const cacheName = 'cache-v8';
 const perfData = {};
 
 // Adding `install` event listener
@@ -39,15 +28,16 @@ self.addEventListener('install', (event) => {
 
   event.waitUntil(
     Promise.all([
-      fetch("/dynamic-page-list")
+      fetch("/shell/files/dynamic")
         .then(resp => resp.json())
-        .then(urlList => caches.open(cacheName+'-dynamic').then(cache => cache.addAll(urlList)))
+        .then(urlList => caches.open(cacheName+'-dynamic').then(cache => cache.addAll(urlList)).then(() => urlList.length))
       ,
-      caches.open(cacheName+'-static')
-        .then(cache => cache.addAll(staticFiles))
+      fetch("/shell/files/static")
+        .then(resp => resp.json())
+        .then(urlList => caches.open(cacheName+'-static').then(cache => cache.addAll(urlList)).then(() => urlList.length))
     ])
-    .then(() => {
-      console.info('[SW] Shell caching complete');
+    .then(([dynamicLen, staticLen]) => {
+      console.info('[SW] Shell caching complete.  Static: '+staticLen+', dynamic: '+dynamicLen);
 
       // Force the waiting service worker to become the active service worker
       return self.skipWaiting();
@@ -61,40 +51,80 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', event => {
   const fragUrl = new URL(event.request.url);
   fragUrl.searchParams.set('frag', 1);
-  const fetchReq = (!corsHosts.includes(fragUrl.host)) ? event.request : new Request(fragUrl.toString(), { mode: 'cors', credentials: 'include' });
+  const fetchReq = (event.request.mode === 'navigate') ? new Request(fragUrl.toString(), { mode: 'cors', credentials: 'include' }) : event.request;
+
+  // Cookie test
+  if (event.request.url.endsWith('/cookietest')) {
+    return event.respondWith(new Response('Hello!', {
+      headers: {
+        "Set-Cookie": "TestCookie=foo; path=/; Max-Age=60;",
+        "Testheader": "foo"
+      }
+    }));
+  }
+
+  // If the performance timings buffer fills up, no more perf data will be recorded.  Clear it on each navigation to ensure we don't hit the limit.
+  if (event.request.mode === 'navigate') {
+    self.performance.clearResourceTimings();
+    if ('clearServerTimings' in self.performance) {
+      self.performance.clearServerTimings();
+    }
+  }
 
   // Cache-first for shell, network-first for content
   const responsePromise = Promise.all([caches.open(cacheName+'-static'), caches.open(cacheName+'-dynamic')])
     .then(([staticCache, dynamicCache]) => Promise.resolve()
-      .then(() => staticCache.match(event.request.url))       // Full page match in static cache
-      .then(r => r || staticCache.match(fragUrl.toString()))  // Frag match in static cache
-      .then(r => r || event.preloadResponse)                  // Pending preloadResponse (could be frag or not)
-      .then(r => r || (fetch(fetchReq)                        // Network fetch, allow server to send frag if it wants to
-        .catch(err => dynamicCache.match(fetchReq))           // On network failure, try dynamic cache
-      ))
+
+      // Pending preloadResponse if it exists (could be frag or not)
+      .then(event.preloadResponse)
+
+      // Failing that, try static cache lookups (which should only apply if not a page navigation)
+      .then(r => r ||
+        Promise.all([
+          staticCache.match(event.request.url),
+          staticCache.match(fragUrl.toString())
+        ]).then(([r1, r2]) => r1 || r2)
+      )
+
+      // Failing that, try the network (but use dynamic cache if network is unavailable or slow)
+      .then(r => {
+          if (r) return r;
+          const netFetch = fetch(fetchReq);
+          const cacheFetch = dynamicCache.match(fetchReq).then(r => r && addCookie(r, {source: "swCache"}));
+          return Promise.resolve()
+            .then(() => Promise.race([netFetch, promiseTimer(NETWORK_TIMEOUT_SHORT, 'reject')]))
+            .catch(() => Promise.race([netFetch, cacheFetch, promiseTimer(NETWORK_TIMEOUT_LONG, 'reject')]))
+          ;
+      })
+
+      // Process response: construct a full page if the response was a frag
       .then(r => {
         if (!r) throw new Error('No response available');
         //console.log('[SW] Fetch', fetchReq, r);
-        if (r.headers.get('Fragment')) {                 // If the server sent a frag, merge it with header/footer
-          const mergedResp = mergeResponses([
-            new Response(Handlebars.templates.header(), {}),
-            r,
-            new Response(Handlebars.templates.footer(), {})
-          ], r.headers);
-          console.log('[SW] Merging frag for ' + r.url);
-          return mergedResp;
+        if (r.headers.get('Fragment')) {
+          const head = staticCache.match('/shell/fragments/header');
+          const foot = staticCache.match('/shell/fragments/footer');
+          const mergedResp = mergeResponses([head, r, foot], r.headers);
+          console.log('[SW] Merging frag for ' + fetchReq.url);
+          event.waitUntil(mergedResp.done);
+          return mergedResp.response;
         } else {
           return r;
         }
       })
     )
     .catch(err => {
-      console.log("[SW] Fetch fail for "+event.request.url, err.message);
-      return caches.match('/offline');
+      if (event.request.mode === 'navigate') {
+        return caches.match('/shell/offline');
+      } else {
+        console.log("[SW] Fetch fail for "+fetchReq.url, err.message);
+        return undefined;
+      }
     })
   ;
 
   event.respondWith(responsePromise);
+
 });
 
 
@@ -217,7 +247,6 @@ self.addEventListener('message', function(event) {
 
     // Use frag URL here
     const entries = self.performance.getEntriesByName(fragUrl.toString());
-    console.log('entries', fragUrl.toString(), entries);
 
     // Get latest resource perf entry
     // TODO: hacky. See https://developers.google.com/web/updates/2015/07/measuring-performance-in-a-service-worker?google_comment_id=z13mv5i4vw31gjpii04cjh4rhufuzfob34w
@@ -226,12 +255,6 @@ self.addEventListener('message', function(event) {
 
     // JSON dance here otherwise we get an error about not being able to clone
     const plainData = latestResourceEntry ? JSON.parse(JSON.stringify(latestResourceEntry)) : null;
-
-    // Clear resource timings to prevent buffer overflow
-    self.performance.clearResourceTimings();
-    if ('clearServerTimings' in self.performance) {
-      self.performance.clearServerTimings();
-    }
 
     event.ports[0].postMessage({status:'ok', data: plainData});
 

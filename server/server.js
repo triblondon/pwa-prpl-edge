@@ -5,7 +5,6 @@ require('dotenv').load();
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
-const gcm = require('node-gcm');
 const serveStatic = require('./lib/static-assets');
 const hbs = require('./lib/view-engine')({helpers:{getVersionedPath: serveStatic.getVersionedPath}});
 
@@ -31,7 +30,8 @@ app.use(bodyParser.json());
 
 // Detect requests for fragments instead of full pages
 app.use((req, res, next) => {
-  app.locals.frag = (req.headers['accept-fragment'] || req.query.frag !== undefined);
+  app.locals.withHeader = app.locals.withFooter = !(req.headers['accept-fragment'] || req.query.frag !== undefined);
+  app.locals.frag = !app.locals.withHeader;
   next();
 });
 

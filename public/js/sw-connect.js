@@ -18,30 +18,13 @@ function getNavigationTimingData() {
 
 if ('serviceWorker' in navigator) {
 	window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(registration => {
+
+    // Break SW path into two strings to avoid replacing it with a ref to the staticified version
+    // It's important that serviceworker retains the same URL when it changes because the browser
+    // will check this URL for updates.  It's also important that the script sits at the top
+    // level of the domain, because otherwise it's scope will be limited.
+    navigator.serviceWorker.register('/s'+'w.js').then(registration => {
       console.log('ServiceWorker registration successful with scope: ', registration.scope);
-
-      // Fires on install and when serviceWorker file changes
-      registration.addEventListener("updatefound", () => {
-
-        // To check if service worker is already installed and controlling the page or not
-        if (navigator.serviceWorker.controller) {
-          const installingSW = registration.installing;
-          installingSW.onstatechange = function() {
-            console.info("Service Worker State :", installingSW.state);
-            switch(installingSW.state) {
-              case 'installed':
-                // Now new contents will be added to cache and old contents will be remove so
-                // this is perfect time to refresh the page
-                location.reload();
-                break;
-              case 'redundant':
-                console.log('The installing service worker became redundant.');
-            }
-          }
-        }
-      });
-
     }, err => {
       console.log('ServiceWorker registration failed: ', err);
     });

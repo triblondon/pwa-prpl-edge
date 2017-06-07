@@ -2,11 +2,10 @@
 
 ## Priorities
 
+- [ ] Why is serviceworker in an update loop?
 - [ ] Get net info to show up reliably
   - [ ] Cache results of geoIP lookups
-- [ ] Static resource hashing
 - [ ] Purging using surrogate keys
-- [ ] Stream header in before body headers arrive (but then we don't know HTTP status, and we miss the cookie).  Streamcombiner, 
 
 #### Loading scenarios
 
@@ -50,7 +49,7 @@
 - [x] Add Server Timing data in backend
 - [x] Deal with 304 responses
 - [ ] Surface server timing data in UI
-- [ ] Fingerprint the static files
+- [x] Fingerprint the static files
 - [x] Don't cache surrogate-key-enhanced responses on the client-side
 
 ### Stream splicing in serviceworker
