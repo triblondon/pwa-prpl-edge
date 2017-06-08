@@ -6,21 +6,11 @@ function promiseTimer(duration, resolution) {
   });
 }
 
-function addCookie(resp, data) {
-  const cookieStr = "CacheStats="+JSON.stringify(data)+'; Max-Age=5; path=/;';
-  const headers = new Headers({'Set-Cookie': cookieStr});
-  resp.headers.forEach((v, k) => headers.append(k, v));
-  return new Response(resp.body, {
-    status: resp.status,
-    statusText: resp.statusText,
-    headers: headers
-  });
-}
-
 const NETWORK_TIMEOUT_SHORT = 1000;
 const NETWORK_TIMEOUT_LONG = 5000;
-const cacheName = 'cache-v8';
-const perfData = {};
+const CACHE_NAME = 'v8';
+
+const responseMetaData = new Map();
 
 // Adding `install` event listener
 self.addEventListener('install', (event) => {
@@ -30,11 +20,11 @@ self.addEventListener('install', (event) => {
     Promise.all([
       fetch("/shell/files/dynamic")
         .then(resp => resp.json())
-        .then(urlList => caches.open(cacheName+'-dynamic').then(cache => cache.addAll(urlList)).then(() => urlList.length))
+        .then(urlList => caches.open(CACHE_NAME+'-dynamic').then(cache => cache.addAll(urlList)).then(() => urlList.length))
       ,
       fetch("/shell/files/static")
         .then(resp => resp.json())
-        .then(urlList => caches.open(cacheName+'-static').then(cache => cache.addAll(urlList)).then(() => urlList.length))
+        .then(urlList => caches.open(CACHE_NAME+'-static').then(cache => cache.addAll(urlList)).then(() => urlList.length))
     ])
     .then(([dynamicLen, staticLen]) => {
       console.info('[SW] Shell caching complete.  Static: '+staticLen+', dynamic: '+dynamicLen);
@@ -53,18 +43,9 @@ self.addEventListener('fetch', event => {
   fragUrl.searchParams.set('frag', 1);
   const fetchReq = (event.request.mode === 'navigate') ? new Request(fragUrl.toString(), { mode: 'cors', credentials: 'include' }) : event.request;
 
-  // Cookie test
-  if (event.request.url.endsWith('/cookietest')) {
-    return event.respondWith(new Response('Hello!', {
-      headers: {
-        "Set-Cookie": "TestCookie=foo; path=/; Max-Age=60;",
-        "Testheader": "foo"
-      }
-    }));
-  }
-
   // If the performance timings buffer fills up, no more perf data will be recorded.  Clear it on each navigation to ensure we don't hit the limit.
   if (event.request.mode === 'navigate') {
+    responseMetaData.clear();
     self.performance.clearResourceTimings();
     if ('clearServerTimings' in self.performance) {
       self.performance.clearServerTimings();
@@ -72,7 +53,7 @@ self.addEventListener('fetch', event => {
   }
 
   // Cache-first for shell, network-first for content
-  const responsePromise = Promise.all([caches.open(cacheName+'-static'), caches.open(cacheName+'-dynamic')])
+  const responsePromise = Promise.all([caches.open(CACHE_NAME+'-static'), caches.open(CACHE_NAME+'-dynamic')])
     .then(([staticCache, dynamicCache]) => Promise.resolve()
 
       // Pending preloadResponse if it exists (could be frag or not)
@@ -90,7 +71,12 @@ self.addEventListener('fetch', event => {
       .then(r => {
           if (r) return r;
           const netFetch = fetch(fetchReq);
-          const cacheFetch = dynamicCache.match(fetchReq).then(r => r && addCookie(r, {source: "swCache"}));
+          const cacheFetch = dynamicCache.match(fetchReq).then(r => {
+            if (r) {
+              responseMetaData.set(fetchReq.url, {source:'swCache'});
+            }
+            return r;
+          });
           return Promise.resolve()
             .then(() => Promise.race([netFetch, promiseTimer(NETWORK_TIMEOUT_SHORT, 'reject')]))
             .catch(() => Promise.race([netFetch, cacheFetch, promiseTimer(NETWORK_TIMEOUT_LONG, 'reject')]))
@@ -118,7 +104,7 @@ self.addEventListener('fetch', event => {
         return caches.match('/shell/offline');
       } else {
         console.log("[SW] Fetch fail for "+fetchReq.url, err.message);
-        return undefined;
+        return new Response('', {status: 503, statusText: 'Offline'});
       }
     })
   ;
@@ -142,7 +128,7 @@ self.addEventListener('activate', (event) => {
     caches.keys()
       .then(cacheNames => Promise.all(
         cacheNames.map(existingCacheName => {
-          if (!existingCacheName.startsWith(cacheName)) {
+          if (!existingCacheName.startsWith(CACHE_NAME)) {
             console.log("[SW] Deleted outdated cache called " + existingCacheName);
             return caches.delete(existingCacheName);
           }
@@ -248,15 +234,19 @@ self.addEventListener('message', function(event) {
     // Use frag URL here
     const entries = self.performance.getEntriesByName(fragUrl.toString());
 
-    // Get latest resource perf entry
+    // Get latest resource perf entry (there should only be one, if buffer is cleared on navigate)
     // TODO: hacky. See https://developers.google.com/web/updates/2015/07/measuring-performance-in-a-service-worker?google_comment_id=z13mv5i4vw31gjpii04cjh4rhufuzfob34w
     // TODO: No servertiming available in this context?
     const latestResourceEntry = entries.filter(entry => entry.entryType = 'resource').pop();
 
     // JSON dance here otherwise we get an error about not being able to clone
-    const plainData = latestResourceEntry ? JSON.parse(JSON.stringify(latestResourceEntry)) : null;
+    const timingData = latestResourceEntry ? JSON.parse(JSON.stringify(latestResourceEntry)) : {};
 
-    event.ports[0].postMessage({status:'ok', data: plainData});
+    // Merge any data from the response metadata map
+    const respData = responseMetaData.get(fragUrl.toString()) || {};
+    const combinedData = Object.assign(timingData, respData);
+
+    event.ports[0].postMessage({status:'ok', data: combinedData});
 
   } else {
     event.ports[0].postMessage({status:'error', data: { message: 'No such method name' }});

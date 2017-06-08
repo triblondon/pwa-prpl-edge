@@ -24,6 +24,21 @@ const getDatacenterMeta = code => Promise.resolve(
   })()
 );
 
+const getGeoIPMeta = ip => {
+  const cache = localStorage.geoip ? JSON.parse(localStorage.geoip) : {};
+  return Promise.resolve(cache[ip] || (() => {
+    return fetch("https://freegeoip.net/json/"+ip, {mode:'cors'})
+      .then(resp => resp.json())
+      .then(data => {
+        cache[ip] = data;
+        localStorage.geoip = JSON.stringify(cache);
+        return data;
+      })
+    ;
+  })());
+};
+
+
 const getServerTimingData = () => {
   return performance
     .getEntriesByName(location.href)
@@ -91,8 +106,7 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
             })
           ;
         } else if (netInfo[nodeName + 'IP']) {
-          return fetch("https://freegeoip.net/json/"+netInfo[nodeName+'IP'], {mode:'cors'})
-            .then(resp => resp.json())
+          return getGeoIPMeta(netInfo[nodeName+'IP'])
             .then(data => {
               netInfo[nodeName+'City'] = data.city;
               netInfo[nodeName+'Lat'] = data.latitude;
@@ -105,25 +119,25 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
 
     // Calculate derived data and populate page
     .then(() => {
-      if ('clientLat' in netInfo && 'edgeLat' in netInfo) {
-        netInfo.clientDistance = Math.round(distance(netInfo.clientLat, netInfo.clientLng, netInfo.edgeLat, netInfo.edgeLng, 'K'));
+      if (netInfo.source === 'swCache') {
+        document.getElementById('netinfo').classList.add('netinfo--offline');
+      } else {
+        if ('clientLat' in netInfo && 'edgeLat' in netInfo) {
+          netInfo.clientDistance = Math.round(distance(netInfo.clientLat, netInfo.clientLng, netInfo.edgeLat, netInfo.edgeLng, 'K'));
+        }
+        if ('backendLat' in netInfo && 'edgeLat' in netInfo) {
+          netInfo.backendDistance = Math.round(distance(netInfo.backendLat, netInfo.backendLng, netInfo.edgeLat, netInfo.edgeLng, 'K'));
+        }
+        if ('clientCity' in netInfo) {
+          netInfo['clientCity'] = netInfo['clientCity'].replace(/\b\w/g, l => l.toUpperCase());
+        }
+        document.getElementById('netinfo').querySelectorAll('[data-netinfo]').forEach(el => {
+          el.innerHTML = netInfo[el.dataset.netinfo];
+        });
+        const cacheClass = netInfo.edgeCacheState.startsWith('HIT') ? 'netinfo--hit' : 'netinfo--miss';
+        document.getElementById('netinfo').classList.add(cacheClass);
+        console.log('Response served from '+netInfo.source);
       }
-      if ('backendLat' in netInfo && 'edgeLat' in netInfo) {
-        netInfo.backendDistance = Math.round(distance(netInfo.backendLat, netInfo.backendLng, netInfo.edgeLat, netInfo.edgeLng, 'K'));
-      }
-      if ('clientCity' in netInfo) {
-        netInfo['clientCity'] = netInfo['clientCity'].replace(/\b\w/g, l => l.toUpperCase());
-      }
-      document.getElementById('netinfo').querySelectorAll('[data-netinfo]').forEach(el => {
-        el.innerHTML = netInfo[el.dataset.netinfo];
-      });
-      const cacheClass = netInfo.edgeCacheState.startsWith('HIT') ? 'netinfo--hit' : 'netinfo--miss';
-      document.getElementById('netinfo').classList.add(cacheClass);
-      console.log('Response served from '+netInfo.source);
     })
-
-    /*.catch(err => {
-      console.log('Net info error', err);
-    })*/
   ;
 }
