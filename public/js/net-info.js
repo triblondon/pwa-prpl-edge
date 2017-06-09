@@ -165,7 +165,7 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
         Object.keys(timingBar).forEach(k => {
           const el = document.getElementById('nettiming-'+k);
           el.style.width = ((timingBar[k]/timingTotal)*100)+'%';
-          el.innerHTML = timingBar[k]+'ms';
+          el.innerHTML = Math.round(timingBar[k])+'ms';
         });
 
         Tippy('.tip', {arrow: true});
