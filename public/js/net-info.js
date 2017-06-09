@@ -56,7 +56,7 @@ const getEdgeTimingData = () => {
   if (cookieStr) {
     return JSON.parse(cookieStr);
   } else if (['127.0.0.1', 'localhost'].includes(location.hostname)) {
-    return {"source": "test", "edgeID":"cache-sjc3132-SJC","edgeDatacenter":"SJC","edgeIP":"151.101.41.209","edgeCacheState":"HIT-CLUSTER","edgeObjectHash":"0.902","edgeVCLVer":"39MzaFBISKerFJYsFCqa4U.28_9-098a41bd2a0bade8b9b0217f0b3a8336","edgeElapsedTimeMS":1,"edgeCacheHitCount":1,"edgeTTL":null,"edgeObjectAge":155,"clientIP":"8.18.217.202","clientLat":37.786,"clientLng":-122.436,"clientCity":"san francisco","clientBrowserName":"Chrome","clientBrowserVer":"","clientIsMobile":"0","backendID":"shield__cache_sjc3132_SJC__sjc_ca_us","backendIP":"216.58.192.20","backendName":"39MzaFBISKerFJYsFCqa4U--F_Google_App_Engine","x":true};
+    return {"source": "test", "edgeID":"cache-sjc3132-SJC","edgeDatacenter":"SJC","edgeIP":"151.101.41.209","edgeCacheState":"HIT-CLUSTER","edgeObjectHash":"0.902","edgeVCLVer":"39MzaFBISKerFJYsFCqa4U.28_9-098a41bd2a0bade8b9b0217f0b3a8336","edgeElapsedTimeMS":30,"edgeCacheHitCount":1,"edgeTTL":null,"edgeObjectAge":155,"clientIP":"8.18.217.202","clientLat":37.786,"clientLng":-122.436,"clientCity":"san francisco","clientBrowserName":"Chrome","clientBrowserVer":"","clientIsMobile":"0","backendID":"shield__cache_sjc3132_SJC__sjc_ca_us","backendIP":"216.58.192.20","backendName":"39MzaFBISKerFJYsFCqa4U--F_Google_App_Engine","x":true};
   } else {
     return {};
   }
@@ -79,7 +79,7 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
           tcpTimeMS: Math.round(connData.connectEnd - connData.connectStart),
           reqTimeMS: Math.round(connData.responseStart - connData.requestStart),
           resTimeMS: Math.round(connData.responseEnd - connData.responseStart),
-          navigationStart: connData.navigationStart,
+          navigationStart: connData.navigationStart || connData.fetchStart,
           responseEnd: connData.responseEnd,
           transferSize: connData.transferSize,
           encodedBodySize: connData.encodedBodySize,
@@ -89,7 +89,7 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
           netInfo.source = 'httpCache';
         }
         netInfo.overheadMS = netInfo.responseEnd - netInfo.navigationStart - netInfo.dnsTimeMS - netInfo.tcpTimeMS - netInfo.reqTimeMS - netInfo.resTimeMS;
-        netInfo.sendTimeMS = netInfo.dnsTimeMS + netInfo.tcpTimeMS + netInfo.reqTimeMS;
+        netInfo.sendTimeMS = (netInfo.dnsTimeMS + netInfo.tcpTimeMS + netInfo.reqTimeMS) - netInfo.edgeElapsedTimeMS;
       }
     })
 
@@ -136,6 +136,25 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
         });
         const cacheClass = netInfo.edgeCacheState.startsWith('HIT') ? 'netinfo--hit' : 'netinfo--miss';
         document.getElementById('netinfo').classList.add(cacheClass);
+
+        const timingBar = {
+          overhead: Math.max(netInfo.overheadMS, 0),
+          conn: Math.max(netInfo.sendTimeMS, 0),
+          fastly: Math.max(netInfo.edgeElapsedTimeMS - netInfo.backendExecTimeMS, 0),
+          beexec: Math.max(netInfo.backendExecTimeMS, 0),
+          resp: Math.max(netInfo.resTimeMS, 0)
+        }
+        const timingTotal = Object.keys(timingBar).reduce((out, k) => out + timingBar[k], 0);
+        Object.keys(timingBar).forEach(k => {
+          const el = document.getElementById('nettiming-'+k);
+          el.style.width = ((timingBar[k]/timingTotal)*100)+'%';
+          el.innerHTML = timingBar[k]+'ms';
+        });
+
+        Tippy('.tip', {
+          arrow: true
+        });
+
         console.log('Response served from '+netInfo.source);
       }
     })

@@ -3,8 +3,6 @@
 ## Priorities
 
 - [ ] Why is serviceworker in an update loop?
-- [ ] Get net info to show up reliably
-  - [ ] Cache results of geoIP lookups
 - [ ] Purging using surrogate keys
 
 #### Loading scenarios
@@ -16,12 +14,6 @@
 3. Frag via serviceworker (clear cache -> click article)
 4. Frag via serviceworker, 304 Not modified (click back to home, click article again)
 5. Offline
-
-## Types of requests
-
-- Page navigations: rewrite to frag, cors, withcreds
-- Assets: Use static if available, cors
-- Freegeoip: cors
 
 ## TODOs
 
@@ -51,6 +43,10 @@
 - [ ] Surface server timing data in UI
 - [x] Fingerprint the static files
 - [x] Don't cache surrogate-key-enhanced responses on the client-side
+- [ ] Better visualisation of HITs - remove arrows, add semicircle
+- [ ] Add additonal bar visualisation
+- [ ] Surface object age, TTL, SWR and SIE times
+- [ ] Surface browser name and version
 
 ### Stream splicing in serviceworker
 
@@ -63,12 +59,14 @@
 ### Offline mode
 
 - [x] Display an offline frag if the frag we need is not available
-- [ ] Download articles for offline viewing into a dynamic cache
+- [x] Download articles for offline viewing into a dynamic cache
+- [ ] Update the dynamic cache every few hours
 
 ### Server push
 
 - [ ] Add link headers to any full page request
 - [ ] Make sure all Pushed resources are cachable
+- [ ] Remove the link headers in vcl_deliver (see Jake's H2 post)
 
 ### Purging
 
@@ -76,7 +74,6 @@
 - [x] Add button to hide an article for 20 mins (surrogate key purge)
 - [x] Maintain a suppression list on the server
 - [x] Send purge of surrogate keys
-- [ ] Surface the number of pages purged
 
 ### PWA
 
@@ -85,7 +82,7 @@
 
 ### Push
 
-- [ ] Silent push
+- [ ] Silent push to sync new content
 
 
 ### Installation

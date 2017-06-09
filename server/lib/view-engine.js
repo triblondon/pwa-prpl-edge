@@ -17,7 +17,6 @@ module.exports = options => {
           cache: req.app.enabled('view cache'),
           precompiled: true
       }).then(templates => {
-          console.log('generating templates', templates);
 
           // RegExp to remove the file extension from the template names.
           var extRegex = new RegExp(hbs.extname + '$');

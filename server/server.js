@@ -6,7 +6,15 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const serveStatic = require('./lib/static-assets');
-const hbs = require('./lib/view-engine')({helpers:{getVersionedPath: serveStatic.getVersionedPath}});
+
+const hbs = require('./lib/view-engine')({
+  helpers:{
+    getVersionedPath: str => {
+
+      return serveStatic.getVersionedPath(str);
+    }
+  }
+});
 
 const PORT = process.env.PORT || 3100;
 
@@ -19,7 +27,7 @@ app.set('view engine', '.hbs');
 app.use(serveStatic.middleware);
 
 // Make template partials available to front end for use in ServiceWorker
-app.use(hbs.exposeTemplates);
+//app.use(hbs.exposeTemplates);
 
 // Measure and report execution time using server-timing API
 app.use(require('./lib/exec-time.js'));

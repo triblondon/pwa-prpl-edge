@@ -20,6 +20,12 @@
 .header__title {
 	font-size: 40px;
 	flex: 1 1 auto;
+  display: block;
+  max-height: 100%;
+  background: url(/images/fastly-logo.svg) 0 0 no-repeat;
+  padding-left: 120px;
+  padding-bottom: 5px;
+  color: black;
 }
 .header__creditlink img {
 	height: 30px;
@@ -71,7 +77,7 @@
 	border: 2px solid #dbdbdb;
 	border-radius: 2px;
 	padding: 20px;
-	margin: 10px 0 50px 0;
+	margin: 10px 0 10px 0;
 	flex-flow: row nowrap;
 	display: flex;
   height: 190px;
@@ -176,4 +182,48 @@
 .netinfo--offline .netinfo__conn--client .netinfo__connlabel--bottom,
 .netinfo--offline ul {
 	display:none;
+}
+
+.nettiming {
+	border: 2px solid #dbdbdb;
+	border-radius: 2px;
+	padding: 5px;
+	margin: 0px 0 50px 0;
+	flex-flow: row nowrap;
+	display: flex;
+  height: 50px;
+  overflow: hidden;
+  box-sizing: border-box;
+  justify-content: center;
+
+}
+.nettiming > * {
+  height: 100%;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  color: white;
+  text-align: center;
+  line-height: 35px;
+}
+.nettiming__overhead {
+  background-color: #888888;
+}
+.nettiming__conn {
+  background-color: #61c46e;
+}
+.nettiming__fastly {
+  background-color: #e82c2a;
+}
+.nettiming__beconn {
+  background-color: #075580;
+}
+.nettiming__beexec {
+  background-color: #ffa462;
+}
+.nettiming__resp {
+  background-color: #3dbbff;
+}
+.tippy-tooltip {
+  max-width: 140px;
+  font-size: 90%;
 }

@@ -52,9 +52,17 @@
           </ul>
         </div>
       </div>
+      <ul class='nettiming' id='nettiming'>
+        <li class='nettiming__overhead tip' id='nettiming-overhead' title='Overhead: Time not attributable to anything else'></li>
+        <li class='nettiming__conn tip' id='nettiming-conn' title='Connection: DNS, TCP and time spent sending the request to Fastly'></li>
+        <li class='nettiming__fastly tip' id='nettiming-fastly' title='Fastly: Time spent processing the request, including making connection to backend'></li>
+        <li class='nettiming__beexec tip' id='nettiming-beexec' title='Execution: Time spent processing request in the backend'></li>
+        <li class='nettiming__resp tip' id='nettiming-resp' title='Response: Time spent downloading the response'></li>
+      </ul>
     </footer>
   </div> <!-- /app__layout -->
 
+  <script src="{{getVersionedPath "/js/tippy.min.js"}}" defer></script>
   <script src="{{getVersionedPath "/js/sw-connect.js"}}" defer></script>
   <script src="{{getVersionedPath "/js/net-info.js"}}" defer></script>
   <script src="{{getVersionedPath "/js/purge.js"}}" defer></script>

@@ -1,14 +1,14 @@
 importScripts('/js/sw/merge-responses.js');
 
 function promiseTimer(duration, resolution) {
-  return new Promise ((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     setTimeout((resolution === 'resolve') ? resolve : reject, duration);
   });
 }
 
 const NETWORK_TIMEOUT_SHORT = 1000;
 const NETWORK_TIMEOUT_LONG = 5000;
-const CACHE_NAME = 'v8';
+const CACHE_NAME = 'v9';
 
 const responseMetaData = new Map();
 
