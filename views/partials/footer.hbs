@@ -38,10 +38,19 @@
         <div class='netinfo__conn netinfo__conn--backend'>
           <div class='netinfo__connlabel'></div>
           <div class='netinfo__connline netinfo__connline--right'></div>
-          <div class='netinfo__connlabel'><span data-netinfo='edgeCacheState'></span>, <span data-netinfo='edgeElapsedTimeMS'></span>ms (hits: <span data-netinfo='edgeCacheHitCount'></span>)</div>
+          <div class='netinfo__connlabel'><span data-netinfo='edgeCacheState'></span>, <span data-netinfo='edgeElapsedTimeMS'></span>ms</div>
           <div class='netinfo__connline netinfo__connline--left'></div>
           <div class='netinfo__connlabel'></div>
           <div class='netinfo__connlabel netinfo__connlabel--bottom'><span data-netinfo='backendDistance'></span>km</div>
+        </div>
+        <div class='netinfo__turnarrow'>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 205">
+            <path d="M 5,15 L10,15 M10,185 a85,85,0,1,0,0,-170" stroke="black" id="e1_circleArc" style="fill: none; stroke-width: 9px;"/>
+            <path d="M 0,185 27,165 27,205 Z"/>
+          </svg>
+        </div>
+        <div class='netinfo__hit-meta netinfo__descr'>
+          <p><span data-netinfo='edgeObjectStateDesc'></span></p>
         </div>
         <div class='netinfo__backend netinfo__node'>
           <img src='{{getVersionedPath "/images/icons/server.svg"}}' alt='Server' />
@@ -52,6 +61,7 @@
           </ul>
         </div>
       </div>
+
       <ul class='nettiming' id='nettiming'>
         <li class='nettiming__overhead tip' id='nettiming-overhead' title='Overhead: Time not attributable to anything else'></li>
         <li class='nettiming__conn tip' id='nettiming-conn' title='Connection: DNS, TCP and time spent sending the request to Fastly'></li>

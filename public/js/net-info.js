@@ -90,6 +90,23 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
         }
         netInfo.overheadMS = netInfo.responseEnd - netInfo.navigationStart - netInfo.dnsTimeMS - netInfo.tcpTimeMS - netInfo.reqTimeMS - netInfo.resTimeMS;
         netInfo.sendTimeMS = (netInfo.dnsTimeMS + netInfo.tcpTimeMS + netInfo.reqTimeMS) - netInfo.edgeElapsedTimeMS;
+        if (netInfo.edgeCacheState.toLowerCase().startsWith('miss')) {
+          netInfo.edgeObjectStateDesc = 'Not in cache (miss)';
+        } else if (netInfo.edgeCacheState.toLowerCase().startsWith('pass')) {
+          netInfo.edgeObjectStateDesc = 'Not eligible for caching (pass)';
+        } else if (netInfo.edgeCacheState.toLowerCase().startsWith('hit')) {
+          if (netInfo.edgeObjectAge < netInfo.edgeTTL) {
+            netInfo.edgeObjectStateDesc = 'Fresh in cache (hit), valid for another '+(netInfo.edgeTTL-netInfo.edgeObjectAge)+'s';
+          } else if (netInfo.edgeObjectAge < (netInfo.edgeTTL + netInfo.edgeSWR)) {
+            netInfo.edgeObjectStateDesc = 'Stale, revalidating asyncronously for up to another '+((netInfo.edgeTTL + netInfo.edgeSWR)-netInfo.edgeObjectAge)+'s';
+          } else if (netInfo.edgeObjectAge < (netInfo.edgeTTL + netInfo.edgeSIE)) {
+            netInfo.edgeObjectStateDesc = 'Stale, using while origin is offline for up to '+((netInfo.edgeTTL + netInfo.edgeSIE)-netInfo.edgeObjectAge)+'s';
+          } else {
+            netInfo.edgeObjectStateDesc = 'Stale';
+          }
+        } else {
+          netInfo.edgeObjectStateDesc = netInfo.edgeCacheState;
+        }
       }
     })
 
@@ -151,11 +168,9 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
           el.innerHTML = timingBar[k]+'ms';
         });
 
-        Tippy('.tip', {
-          arrow: true
-        });
+        Tippy('.tip', {arrow: true});
 
-        console.log('Response served from '+netInfo.source);
+        console.log(netInfo);
       }
     })
   ;

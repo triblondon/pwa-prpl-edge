@@ -23,9 +23,7 @@ if ('serviceWorker' in navigator) {
     // It's important that serviceworker retains the same URL when it changes because the browser
     // will check this URL for updates.  It's also important that the script sits at the top
     // level of the domain, because otherwise it's scope will be limited.
-    navigator.serviceWorker.register('/s'+'w.js').then(registration => {
-      console.log('ServiceWorker registration successful with scope: ', registration.scope);
-    }, err => {
+    navigator.serviceWorker.register('/s'+'w.js').catch(err => {
       console.log('ServiceWorker registration failed: ', err);
     });
   });

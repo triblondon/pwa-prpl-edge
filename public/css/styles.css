@@ -81,7 +81,7 @@
 	flex-flow: row nowrap;
 	display: flex;
   height: 190px;
-  align-items: center;
+  align-items: start;
 }
 .netinfo > * {
   display: none;
@@ -139,17 +139,24 @@
     left: -6px;
 }
 .netinfo__descr {
-  flex-flow: column;
-  justify-content: center;
-  margin-left: 20px;
   font-size: 120%;
+}
+.netinfo__offline {
+  margin-left: 20px;
+}
+.netinfo__hit-meta {
+  margin: 20px 0 0 20px;
+}
+.netinfo__turnarrow svg {
+  margin-top: 13px;
+  height: 44px;
 }
 
 .netinfo--hit .netinfo__you,
 .netinfo--hit .netinfo__conn--client,
 .netinfo--hit .netinfo__fastly,
-.netinfo--hit .netinfo__conn--backend,
-.netinfo--hit .netinfo__backend,
+.netinfo--hit .netinfo__turnarrow,
+.netinfo--hit .netinfo__hit-meta,
 .netinfo--miss .netinfo__you,
 .netinfo--miss .netinfo__conn--client,
 .netinfo--miss .netinfo__fastly,
@@ -163,6 +170,9 @@
 }
 .netinfo--hit .netinfo__backend {
 	opacity: 0.4;
+}
+.netinfo--offline {
+  padding-top: 50px;
 }
 .netinfo--offline .netinfo__you,
 .netinfo--offline .netinfo__conn--client,
