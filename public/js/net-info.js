@@ -56,7 +56,7 @@ const getEdgeTimingData = () => {
   if (cookieStr) {
     return JSON.parse(cookieStr);
   } else if (['127.0.0.1', 'localhost'].includes(location.hostname)) {
-    return {"source": "test", "edgeID":"cache-sjc3132-SJC","edgeDatacenter":"SJC","edgeIP":"151.101.41.209","edgeCacheState":"HIT-CLUSTER","edgeObjectHash":"0.902","edgeVCLVer":"39MzaFBISKerFJYsFCqa4U.28_9-098a41bd2a0bade8b9b0217f0b3a8336","edgeElapsedTimeMS":30,"edgeCacheHitCount":1,"edgeTTL":null,"edgeObjectAge":155,"clientIP":"8.18.217.202","clientLat":37.786,"clientLng":-122.436,"clientCity":"san francisco","clientBrowserName":"Chrome","clientBrowserVer":"","clientIsMobile":"0","backendID":"shield__cache_sjc3132_SJC__sjc_ca_us","backendIP":"216.58.192.20","backendName":"39MzaFBISKerFJYsFCqa4U--F_Google_App_Engine","x":true};
+    return {"source": "test", "edgeID":"cache-sjc3132-SJC","edgeDatacenter":"SJC","edgeIP":"151.101.41.209","edgeCacheState":"HIT","edgeObjectHash":"0.902","edgeVCLVer":"39MzaFBISKerFJYsFCqa4U.28_9-098a41bd2a0bade8b9b0217f0b3a8336","edgeElapsedTimeMS":30,"edgeCacheHitCount":1,"edgeTTL":3600,"edgeObjectAge":4001,"edgeSWR":300,"edgeSIE":86400,"clientIP":"8.18.217.202","clientLat":37.786,"clientLng":-122.436,"clientCity":"san francisco","clientBrowserName":"Chrome","clientBrowserVer":"","clientIsMobile":"0","backendID":"shield__cache_sjc3132_SJC__sjc_ca_us","backendIP":"216.58.192.20","backendName":"39MzaFBISKerFJYsFCqa4U--F_Google_App_Engine","x":true};
   } else {
     return {};
   }
@@ -90,22 +90,31 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
         }
         netInfo.overheadMS = netInfo.responseEnd - netInfo.navigationStart - netInfo.dnsTimeMS - netInfo.tcpTimeMS - netInfo.reqTimeMS - netInfo.resTimeMS;
         netInfo.sendTimeMS = (netInfo.dnsTimeMS + netInfo.tcpTimeMS + netInfo.reqTimeMS) - netInfo.edgeElapsedTimeMS;
-        if (netInfo.edgeCacheState.toLowerCase().startsWith('miss')) {
-          netInfo.edgeObjectStateDesc = 'Not in cache (miss)';
-        } else if (netInfo.edgeCacheState.toLowerCase().startsWith('pass')) {
-          netInfo.edgeObjectStateDesc = 'Not eligible for caching (pass)';
-        } else if (netInfo.edgeCacheState.toLowerCase().startsWith('hit')) {
-          if (netInfo.edgeObjectAge < netInfo.edgeTTL) {
-            netInfo.edgeObjectStateDesc = 'Fresh in cache (hit), valid for another '+(netInfo.edgeTTL-netInfo.edgeObjectAge)+'s';
-          } else if (netInfo.edgeObjectAge < (netInfo.edgeTTL + netInfo.edgeSWR)) {
-            netInfo.edgeObjectStateDesc = 'Stale, revalidating asyncronously for up to another '+((netInfo.edgeTTL + netInfo.edgeSWR)-netInfo.edgeObjectAge)+'s';
-          } else if (netInfo.edgeObjectAge < (netInfo.edgeTTL + netInfo.edgeSIE)) {
-            netInfo.edgeObjectStateDesc = 'Stale, using while origin is offline for up to '+((netInfo.edgeTTL + netInfo.edgeSIE)-netInfo.edgeObjectAge)+'s';
+        if (netInfo.edgeCacheState) {
+          if (netInfo.edgeCacheState.toLowerCase().startsWith('miss')) {
+            netInfo.edgeObjectState = 'Not in cache (MISS)';
+          } else if (netInfo.edgeCacheState.toLowerCase().startsWith('pass')) {
+            netInfo.edgeObjectState = 'Not eligible for caching (PASS)';
+          } else if (netInfo.edgeCacheState.toLowerCase().startsWith('hit')) {
+            if (netInfo.edgeObjectAge < netInfo.edgeTTL) {
+              netInfo.edgeObjectState = 'Fresh in cache (HIT)';
+              netInfo.edgeObjectStateDesc = netInfo.edgeCacheHitCount+' hits, remaining TTL '+(netInfo.edgeTTL-netInfo.edgeObjectAge)+'s';
+            } else if (netInfo.edgeObjectAge < (netInfo.edgeTTL + netInfo.edgeSWR)) {
+              netInfo.edgeObjectState = 'Stale while revalidating (HIT)';
+              netInfo.edgeObjectStateDesc = 'Revalidation time remaining: '+((netInfo.edgeTTL + netInfo.edgeSWR)-netInfo.edgeObjectAge)+'s';
+            } else if (netInfo.edgeObjectAge < (netInfo.edgeTTL + netInfo.edgeSIE)) {
+              netInfo.edgeObjectState = 'Stale due to origin failure (HIT)';
+              netInfo.edgeObjectStateDesc = 'Using while origin down for up to another '+((netInfo.edgeTTL + netInfo.edgeSIE)-netInfo.edgeObjectAge)+'s';
+            } else {
+              netInfo.edgeObjectState = 'Stale HIT';
+              netInfo.edgeObjectStateDesc = 'Unknown reason for cache hit';
+            }
           } else {
-            netInfo.edgeObjectStateDesc = 'Stale';
+            netInfo.edgeObjectState = netInfo.edgeCacheState;
           }
         } else {
-          netInfo.edgeObjectStateDesc = netInfo.edgeCacheState;
+          netInfo.edgeObjectState = "Unknown";
+          netInfo.edgeObjectStateDesc = "No Fastly metadata";
         }
       }
     })
@@ -151,13 +160,18 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
         document.getElementById('netinfo').querySelectorAll('[data-netinfo]').forEach(el => {
           el.innerHTML = netInfo[el.dataset.netinfo];
         });
-        const cacheClass = netInfo.edgeCacheState.startsWith('HIT') ? 'netinfo--hit' : 'netinfo--miss';
+        const cacheClass = ('edgeCacheState' in netInfo && netInfo.edgeCacheState.startsWith('HIT')) ? 'netinfo--hit' : 'netinfo--miss';
+        if (cacheClass === 'netinfo--hit') {
+          netInfo.edgeProcessingTimeMS = netInfo.edgeElapsedTimeMS;
+        } else {
+          netInfo.edgeProcessingTimeMS = netInfo.edgeElapsedTimeMS - netInfo.backendExecTimeMS;
+        }
         document.getElementById('netinfo').classList.add(cacheClass);
 
         const timingBar = {
           overhead: Math.max(netInfo.overheadMS, 0),
           conn: Math.max(netInfo.sendTimeMS, 0),
-          fastly: Math.max(netInfo.edgeElapsedTimeMS - netInfo.backendExecTimeMS, 0),
+          fastly: Math.max(netInfo.edgeProcessingTimeMS, 0),
           beexec: Math.max(netInfo.backendExecTimeMS, 0),
           resp: Math.max(netInfo.resTimeMS, 0)
         }

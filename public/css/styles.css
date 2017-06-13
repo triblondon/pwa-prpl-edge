@@ -151,6 +151,10 @@
   margin-top: 13px;
   height: 44px;
 }
+.netinfo__minor {
+  font-size: 75%;
+  margin-top: 3px;
+}
 
 .netinfo--hit .netinfo__you,
 .netinfo--hit .netinfo__conn--client,

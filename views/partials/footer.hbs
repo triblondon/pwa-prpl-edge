@@ -31,21 +31,22 @@
           <h3>Fastly</h3>
           <ul>
             <li><span data-netinfo='edgeCity'>Locating...</span></li>
-            <li><span data-netinfo='edgeIP'></span></li>
-            <li>(<span data-netinfo='edgeID'></span>)</li>
+            <li><span data-netinfo='edgeID'></span></li>
+            <li><span data-netinfo='edgeProcessingTimeMS' title='Fastly processing time'></span>ms</li>
           </ul>
         </div>
         <div class='netinfo__conn netinfo__conn--backend'>
           <div class='netinfo__connlabel'></div>
           <div class='netinfo__connline netinfo__connline--right'></div>
-          <div class='netinfo__connlabel'><span data-netinfo='edgeCacheState'></span>, <span data-netinfo='edgeElapsedTimeMS'></span>ms</div>
+          <div class='netinfo__connlabel'><span data-netinfo='edgeObjectState'></span></div>
           <div class='netinfo__connline netinfo__connline--left'></div>
           <div class='netinfo__connlabel'></div>
           <div class='netinfo__connlabel netinfo__connlabel--bottom'><span data-netinfo='backendDistance'></span>km</div>
         </div>
         <div class='netinfo__turnarrow'><img src='/images/turn-around.svg' /></div>
         <div class='netinfo__hit-meta netinfo__descr'>
-          <p><span data-netinfo='edgeObjectStateDesc'></span></p>
+          <div><span data-netinfo='edgeObjectState'></span></div>
+          <div class='netinfo__minor'><span data-netinfo='edgeObjectStateDesc'></span></div>
         </div>
         <div class='netinfo__backend netinfo__node'>
           <img src='{{getVersionedPath "/images/icons/server.svg"}}' alt='Server' />
@@ -53,6 +54,7 @@
           <ul>
             <li><span data-netinfo='backendCity'>Locating...</span></li>
             <li><span data-netinfo='backendIP'></span></li>
+            <li><span data-netinfo='backendExecTimeMS' title='Backend execution time'></span>ms</li>
           </ul>
         </div>
       </div>

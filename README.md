@@ -2,8 +2,10 @@
 
 ## Priorities
 
-- [ ] Why is serviceworker in an update loop?
-- [ ] Purging using surrogate keys
+- [ ] Test purging using surrogate keys
+- [ ] Update the dynamic cache every few hours
+- [ ] Fix tooltip CSP error
+- [ ] Server Push
 
 #### Loading scenarios
 
@@ -40,12 +42,11 @@
 - [x] Make client geo more accurate with geolocation API
 - [x] Add Server Timing data in backend
 - [x] Deal with 304 responses
-- [ ] Surface server timing data in UI
+- [x] Surface server timing data in UI
 - [x] Fingerprint the static files
 - [x] Don't cache surrogate-key-enhanced responses on the client-side
-- [ ] Better visualisation of HITs - remove arrows, add semicircle
-- [ ] Add additonal bar visualisation
-- [ ] Surface object age, TTL, SWR and SIE times
+- [x] Bar visualisation
+- [x] Surface object age, TTL, SWR and SIE times
 - [ ] Surface browser name and version
 
 ### Stream splicing in serviceworker

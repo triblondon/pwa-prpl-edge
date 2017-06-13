@@ -8,7 +8,7 @@ function promiseTimer(duration, resolution) {
 
 const NETWORK_TIMEOUT_SHORT = 1000;
 const NETWORK_TIMEOUT_LONG = 5000;
-const CACHE_NAME = 'v9';
+const CACHE_NAME = 'v10';
 
 const responseMetaData = new Map();
 
