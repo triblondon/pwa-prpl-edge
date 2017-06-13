@@ -4,7 +4,6 @@
 
 - [ ] Test purging using surrogate keys
 - [ ] Update the dynamic cache every few hours
-- [ ] Fix tooltip CSP error
 - [ ] Server Push
 
 #### Loading scenarios
@@ -12,7 +11,7 @@
 1. No serviceworker, online, full page response (Shift-reload)
   - Works for Fastly HIT, Works for Fastly MISS
 2. No serviceworker, 304 Not modified (renavigate to the page with 'bypass for network')
-  - Works for Fastly HIT
+  - Preventing this at the moment with no-store
 3. Frag via serviceworker (clear cache -> click article)
 4. Frag via serviceworker, 304 Not modified (click back to home, click article again)
 5. Offline

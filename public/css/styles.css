@@ -161,6 +161,7 @@
 .netinfo--hit .netinfo__fastly,
 .netinfo--hit .netinfo__turnarrow,
 .netinfo--hit .netinfo__hit-meta,
+.netinfo--hit .netinfo__backend
 .netinfo--miss .netinfo__you,
 .netinfo--miss .netinfo__conn--client,
 .netinfo--miss .netinfo__fastly,
