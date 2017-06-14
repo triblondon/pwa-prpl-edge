@@ -1,4 +1,5 @@
 importScripts('/js/sw/merge-responses.js');
+importScripts('/js/sw/idb-keyval.js');
 
 function promiseTimer(duration, resolution) {
   return new Promise((resolve, reject) => {
@@ -6,11 +7,13 @@ function promiseTimer(duration, resolution) {
   });
 }
 
-const NETWORK_TIMEOUT_SHORT = 1000;
-const NETWORK_TIMEOUT_LONG = 5000;
+const NETWORK_TIMEOUT_SHORT = 1 * 1000;
+const NETWORK_TIMEOUT_LONG = 5 * 1000;
+const DYNAMIC_CACHE_UPDATE_INTERVAL = 10 * 1000;
 const CACHE_NAME = 'v10';
 
 const responseMetaData = new Map();
+let cacheUpdateInProgress = false;
 
 // Adding `install` event listener
 self.addEventListener('install', (event) => {
@@ -28,17 +31,16 @@ self.addEventListener('install', (event) => {
     ])
     .then(([dynamicLen, staticLen]) => {
       console.info('[SW] Shell caching complete.  Static: '+staticLen+', dynamic: '+dynamicLen);
-
-      // Force the waiting service worker to become the active service worker
-      return self.skipWaiting();
+      return idbKeyval.set('dynamicCacheUpdateTime', Date.now());
     })
+    .then(() => self.skipWaiting())
     .catch((error) =>  {
       console.error('[SW] Failed to build SW cache', error);
     })
   );
 });
 
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', async event => {
   const fragUrl = new URL(event.request.url);
   fragUrl.searchParams.set('frag', 1);
   const fetchReq = (event.request.mode === 'navigate') ? new Request(fragUrl.toString(), { mode: 'cors', credentials: 'include' }) : event.request;
@@ -111,6 +113,23 @@ self.addEventListener('fetch', event => {
 
   event.respondWith(responsePromise);
 
+  // Update cache if needed
+  if (!cacheUpdateInProgress) {
+    const lastUpdateTime = await idbKeyval.get('dynamicCacheUpdateTime');
+    if (!lastUpdateTime || lastUpdateTime < (Date.now() - DYNAMIC_CACHE_UPDATE_INTERVAL)) {
+      console.log('[SW] Incrementally updating dynamic cache...');
+      cacheUpdateInProgress = true;
+      const cache = await caches.open(CACHE_NAME+'-dynamic');
+      const newUrlList = await fetch("/shell/files/dynamic").then(resp => resp.json());
+      const existingUrlList = await cache.keys().then(reqs => reqs.map(r => r.url.replace(/https?\:\/\/[^\/]+/, '')));
+      const urlsToAdd = newUrlList.filter(u => !existingUrlList.includes(u));
+      const urlsToDel = existingUrlList.filter(u => !newUrlList.includes(u));
+      await Promise.all(urlsToDel.map(u => cache.delete(u)).concat(cache.addAll(urlsToAdd)));
+      await idbKeyval.set('dynamicCacheUpdateTime', Date.now());
+      console.log("[SW] Cache update complete.  Deletions: "+urlsToDel.length+", additions: "+urlsToAdd.length);
+      cacheUpdateInProgress = false;
+    }
+  }
 });
 
 

@@ -7,27 +7,16 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const serveStatic = require('./lib/static-assets');
 
-const hbs = require('./lib/view-engine')({
-  helpers:{
-    getVersionedPath: str => {
-
-      return serveStatic.getVersionedPath(str);
-    }
-  }
-});
-
 const PORT = process.env.PORT || 3100;
 
 const app = express();
+const hbs = require('./lib/view-engine')({helpers: { getVersionedPath: serveStatic.getVersionedPath } });
 
 app.engine('.hbs', hbs.engine);
 app.set('view engine', '.hbs');
 
 // Serve static assets
 app.use(serveStatic.middleware);
-
-// Make template partials available to front end for use in ServiceWorker
-//app.use(hbs.exposeTemplates);
 
 // Measure and report execution time using server-timing API
 app.use(require('./lib/exec-time.js'));
@@ -38,8 +27,18 @@ app.use(bodyParser.json());
 
 // Detect requests for fragments instead of full pages
 app.use((req, res, next) => {
-  app.locals.withHeader = app.locals.withFooter = !(req.headers['accept-fragment'] || req.query.frag !== undefined);
-  app.locals.frag = !app.locals.withHeader;
+  if (req.headers['accept-fragment'] || req.query.frag !== undefined) {
+    app.locals.withHeader = app.locals.withFooter = false;
+    app.locals.frag = true;
+  } else {
+    app.locals.withHeader = app.locals.withFooter = true;
+    app.locals.frag = false;
+    const pushUrls = serveStatic.getAssetsForPush();
+    res.set('Link', pushUrls.map(url => {
+      const type = url.endsWith('.css') ? "style" : url.endsWith('.svg') ? "image" : "font";
+      return '<' + url + '>;rel=preload;as='+type+';';
+    }));
+  }
   next();
 });
 

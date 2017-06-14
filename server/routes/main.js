@@ -4,6 +4,19 @@ const fetch = require('node-fetch');
 
 const router = express.Router();
 
+const sendPurge = id => {
+  return fetch("https://api.fastly.com/service/" + process.env.FASTLY_SERVICE_ID + "/purge/articles/" + id, {
+    method: 'POST',
+    headers: {
+      'Fastly-Key': process.env.FASTLY_API_TOKEN,
+      'Fastly-Soft-Purge': 1
+    }
+  })
+    .then(resp => resp.json())
+    .then(data => console.log('purged ' + id, data))
+  ;
+};
+
 const indexHandler = (req, res) => {
   const locals = {};
   if (req.params.topic) {
@@ -25,29 +38,21 @@ const articleHandler = (req, res, next) => {
   res.render('article', {article});
 };
 
-const purgeHandler = (req, res) => {
-  console.log('Purge handler', req.body, req.body.id);
+const suspendHandler = (req, res) => {
   const article = content.getArticle(req.body.id);
   if (article) {
     content.suspendArticle(article.id);
-    fetch("https://api.fastly.com/service/" + process.env.FASTLY_SERVICE_ID + "/purge/articles/" + article.id, {
-      method: 'POST',
-      headers: {
-        'Fastly-Key': process.env.FASTLY_API_TOKEN,
-        'Fastly-Soft-Purge': 1
-      }
-    })
-      .then(resp => resp.json())
-      .then(data => res.json(data))
-    ;
+    res.json(true);
   } else {
     res.json({status:'error', msg:'No such article found'});
   }
 };
 
+content.on('deletedArticle', sendPurge);
+
 router.get('/', indexHandler);
 router.get('/topics/:topic', indexHandler);
 router.get('/articles/:id', articleHandler);
-router.post('/suspend-article', purgeHandler);
+router.post('/suspend-article', suspendHandler);
 
 module.exports = router;

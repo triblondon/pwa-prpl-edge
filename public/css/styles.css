@@ -40,6 +40,9 @@
     border-radius: 3px;
     box-shadow: 0 0 5px 0px rgba(0,0,0,0.1);
 }
+.card a {
+  display: block;
+}
 .tag-list {
 	list-style-type: none;
 }
@@ -138,14 +141,15 @@
     border-right: 10px solid #444;
     left: -6px;
 }
-.netinfo__descr {
+.netinfo__descr-block {
   font-size: 120%;
+  height: 56px;
 }
 .netinfo__offline {
   margin-left: 20px;
 }
 .netinfo__hit-meta {
-  margin: 20px 0 0 20px;
+  margin: 20px 30px 0 10px;
 }
 .netinfo__turnarrow img {
   margin-top: 13px;
@@ -161,7 +165,7 @@
 .netinfo--hit .netinfo__fastly,
 .netinfo--hit .netinfo__turnarrow,
 .netinfo--hit .netinfo__hit-meta,
-.netinfo--hit .netinfo__backend
+.netinfo--hit .netinfo__backend,
 .netinfo--miss .netinfo__you,
 .netinfo--miss .netinfo__conn--client,
 .netinfo--miss .netinfo__fastly,

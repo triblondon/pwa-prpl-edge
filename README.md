@@ -4,6 +4,7 @@
 
 - [ ] Test purging using surrogate keys
 - [ ] Update the dynamic cache every few hours
+- [ ] Purge on content update
 - [ ] Server Push
 
 #### Loading scenarios

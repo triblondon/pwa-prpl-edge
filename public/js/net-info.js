@@ -157,16 +157,16 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
         if ('clientCity' in netInfo) {
           netInfo['clientCity'] = netInfo['clientCity'].replace(/\b\w/g, l => l.toUpperCase());
         }
+        const cacheClass = ('edgeCacheState' in netInfo && netInfo.edgeCacheState.startsWith('HIT')) ? 'netinfo--hit' : 'netinfo--miss';
+        if (cacheClass === 'netinfo--hit') {
+          netInfo.edgeProcessingTimeMS = (netInfo.edgeElapsedTimeMS || 0);
+        } else {
+          netInfo.edgeProcessingTimeMS = (netInfo.edgeElapsedTimeMS || 0) - (netInfo.backendExecTimeMS || 0);
+        }
+        document.getElementById('netinfo').classList.add(cacheClass);
         document.getElementById('netinfo').querySelectorAll('[data-netinfo]').forEach(el => {
           el.innerHTML = netInfo[el.dataset.netinfo];
         });
-        const cacheClass = ('edgeCacheState' in netInfo && netInfo.edgeCacheState.startsWith('HIT')) ? 'netinfo--hit' : 'netinfo--miss';
-        if (cacheClass === 'netinfo--hit') {
-          netInfo.edgeProcessingTimeMS = netInfo.edgeElapsedTimeMS;
-        } else {
-          netInfo.edgeProcessingTimeMS = netInfo.edgeElapsedTimeMS - netInfo.backendExecTimeMS;
-        }
-        document.getElementById('netinfo').classList.add(cacheClass);
 
         const timingBar = {
           overhead: Math.max(netInfo.overheadMS, 0),

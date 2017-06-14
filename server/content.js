@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const fetch = require('node-fetch');
 const FeedParser = require('feedparser');
+const events = require('events');
 
 const REFRESH_INTERVAL = 60000;
 const SOURCE_URL = 'https://www.theguardian.com/uk/rss';
@@ -10,6 +11,7 @@ const SUSPEND_TIME_MS = 20 * 60 * 1000;
 let articles = [];
 let meta = {};
 let suspended = {};
+const eventEmitter = new events.EventEmitter();
 
 const sha256 = inp => crypto.createHash('sha1').update(JSON.stringify(inp)).digest('hex');
 const slugify = inp => inp.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, '-');
@@ -41,6 +43,14 @@ function refreshArticles() {
       });
     })
     .then(newarticles => {
+      articles
+        .filter(a => !newarticles.find(a2 => a2.id===a.id))
+        .forEach(a => eventEmitter.emit('deletedArticle', a.id))
+      ;
+      newarticles
+        .filter(a => !articles.find(a2 => a2.id===a.id))
+        .forEach(a => eventEmitter.emit('newArticle', a.id))
+      ;
       articles = newarticles;
     })
   ;
@@ -71,7 +81,9 @@ module.exports = {
   getMeta: () => meta,
   suspendArticle: id => {
     suspended[id] = Date.now();
-    console.log('suspended', suspended);
+    console.log('Currently suspended: ', suspended);
+    eventEmitter.emit('deletedArticle', id);
     articles = articles.filter(a => a.id !== id);
-  }
+  },
+  on: eventEmitter.on.bind(eventEmitter)
 };

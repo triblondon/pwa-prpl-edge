@@ -24,7 +24,7 @@
           <h3>Internet</h3>
         </div>
         <div class='netinfo__offline netinfo__descr'>
-          <p>When you loaded this page, you had no internet connection, so you are seeing content that has been previously downloaded and stored on your device.</p>
+          <div class='netinfo__descr-block'>When you loaded this page, you had no internet connection, so you are seeing content that has been previously downloaded and stored on your device.</div>
         </div>
         <div class='netinfo__fastly netinfo__node'>
           <img src='{{getVersionedPath "/images/icons/fastly.svg"}}' alt='Fastly logo' />
@@ -45,9 +45,12 @@
         </div>
         <div class='netinfo__turnarrow'><img src='/images/turn-around.svg' /></div>
         <div class='netinfo__hit-meta netinfo__descr'>
-          <div><span data-netinfo='edgeObjectState'></span></div>
-          <div class='netinfo__minor'><span data-netinfo='edgeObjectStateDesc'></span></div>
-        </div>
+          <div class='netinfo__descr-block'>
+            <div><span data-netinfo='edgeObjectState'></span></div>
+            <div class='netinfo__minor'><span data-netinfo='edgeObjectStateDesc'></span></div>
+          </div>
+          <div class='netinfo__connlabel netinfo__connlabel--bottom'><span data-netinfo='backendDistance'></span>km</div>
+       </div>
         <div class='netinfo__backend netinfo__node'>
           <img src='{{getVersionedPath "/images/icons/server.svg"}}' alt='Server' />
           <h3>Origin</h3>

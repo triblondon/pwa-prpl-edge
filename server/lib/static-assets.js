@@ -9,6 +9,14 @@ const SOURCE_DIR = path.join(__dirname, '../../public');
 const BUILD_DIR = path.join(__dirname, '../../__build/public');
 const TEXT_TYPES = ['image/svg+xml', 'application/json', 'application/javascript', 'text/css', 'text/html', 'text/plain'];
 
+const pushAssets = [
+  "/css/ux-platform.css",
+  "/css/tippy.css",
+  "/css/styles.css",
+  "/images/guardian-logo.svg",
+  "/images/fastly-logo.svg"
+];
+
 deleteDir(BUILD_DIR);
 copyDir(SOURCE_DIR, BUILD_DIR);
 
@@ -23,3 +31,4 @@ Object.keys(inst._versions).forEach(filePath => {
 });
 
 module.exports = inst;
+module.exports.getAssetsForPush = () => pushAssets.map(p => inst.getVersionedPath(p));
