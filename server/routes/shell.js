@@ -38,6 +38,7 @@ router.get('/shell/files/static', (req, res) => {
 	res.json(staticFiles);
 });
 router.get('/shell/files/dynamic', (req, res, next) => {
+  res.set('Surrogate-Key', 'indexes');
   res.json([].concat(
     content.getArticleIDs().map(id => "/articles/"+id+"?frag=1"),
     content.getTopics().map(topic => "/topics/"+topic+"?frag=1")

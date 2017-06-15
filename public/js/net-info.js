@@ -169,11 +169,11 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
         });
 
         const timingBar = {
-          overhead: Math.max(netInfo.overheadMS, 0),
-          conn: Math.max(netInfo.sendTimeMS, 0),
-          fastly: Math.max(netInfo.edgeProcessingTimeMS, 0),
-          beexec: Math.max(netInfo.backendExecTimeMS, 0),
-          resp: Math.max(netInfo.resTimeMS, 0)
+          overhead: Math.max(netInfo.overheadMS, 0) || 0,
+          conn: Math.max(netInfo.sendTimeMS, 0) || 0,
+          fastly: Math.max(netInfo.edgeProcessingTimeMS, 0) || 0,
+          beexec: Math.max(netInfo.backendExecTimeMS, 0) || 0,
+          resp: Math.max(netInfo.resTimeMS, 0) || 0
         }
         const timingTotal = Object.keys(timingBar).reduce((out, k) => out + timingBar[k], 0);
         Object.keys(timingBar).forEach(k => {

@@ -9,8 +9,8 @@ function promiseTimer(duration, resolution) {
 
 const NETWORK_TIMEOUT_SHORT = 1 * 1000;
 const NETWORK_TIMEOUT_LONG = 5 * 1000;
-const DYNAMIC_CACHE_UPDATE_INTERVAL = 10 * 1000;
-const CACHE_NAME = 'v10';
+const DYNAMIC_CACHE_UPDATE_INTERVAL = (location.hostname === 'localhost') ? (1 * 1000) : (60 * 60 * 1000);
+const CACHE_NAME = 'v11';
 
 const responseMetaData = new Map();
 let cacheUpdateInProgress = false;
@@ -30,7 +30,7 @@ self.addEventListener('install', (event) => {
         .then(urlList => caches.open(CACHE_NAME+'-static').then(cache => cache.addAll(urlList)).then(() => urlList.length))
     ])
     .then(([dynamicLen, staticLen]) => {
-      console.info('[SW] Shell caching complete.  Static: '+staticLen+', dynamic: '+dynamicLen);
+      console.info('[SW] Finished building cache '+CACHE_NAME+'.  Object count: '+staticLen+' static, '+dynamicLen+' dynamic.');
       return idbKeyval.set('dynamicCacheUpdateTime', Date.now());
     })
     .then(() => self.skipWaiting())
@@ -40,7 +40,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-self.addEventListener('fetch', async event => {
+self.addEventListener('fetch', event => {
   const fragUrl = new URL(event.request.url);
   fragUrl.searchParams.set('frag', 1);
   const fetchReq = (event.request.mode === 'navigate') ? new Request(fragUrl.toString(), { mode: 'cors', credentials: 'include' }) : event.request;
@@ -55,81 +55,81 @@ self.addEventListener('fetch', async event => {
   }
 
   // Cache-first for shell, network-first for content
-  const responsePromise = Promise.all([caches.open(CACHE_NAME+'-static'), caches.open(CACHE_NAME+'-dynamic')])
-    .then(([staticCache, dynamicCache]) => Promise.resolve()
+  event.respondWith(async function () {
+    try {
+      const staticCache = await caches.open(CACHE_NAME+'-static');
+      const dynamicCache = await caches.open(CACHE_NAME+'-dynamic');
 
       // Pending preloadResponse if it exists (could be frag or not)
-      .then(event.preloadResponse)
+      const preloadResp = await event.preloadResponse;
+      if (preloadResp) return preloadResp;
 
       // Failing that, try static cache lookups (which should only apply if not a page navigation)
-      .then(r => r ||
-        Promise.all([
-          staticCache.match(event.request.url),
-          staticCache.match(fragUrl.toString())
-        ]).then(([r1, r2]) => r1 || r2)
-      )
+      const staticResp = await Promise.all([
+        staticCache.match(event.request.url),
+        staticCache.match(fragUrl.toString())
+      ]).then(([r1, r2]) => r1 || r2);
+      if (staticResp) return staticResp;
 
       // Failing that, try the network (but use dynamic cache if network is unavailable or slow)
-      .then(r => {
-          if (r) return r;
-          const netFetch = fetch(fetchReq);
-          const cacheFetch = dynamicCache.match(fetchReq).then(r => {
-            if (r) {
-              responseMetaData.set(fetchReq.url, {source:'swCache'});
-            }
-            return r;
-          });
-          return Promise.resolve()
-            .then(() => Promise.race([netFetch, promiseTimer(NETWORK_TIMEOUT_SHORT, 'reject')]))
-            .catch(() => Promise.race([netFetch, cacheFetch, promiseTimer(NETWORK_TIMEOUT_LONG, 'reject')]))
-          ;
-      })
+      const netFetchPromise = fetch(fetchReq);
+      const cacheFetchPromise = dynamicCache.match(fetchReq).then(r => {
+        r && responseMetaData.set(fetchReq.url, {source:'swCache'});
+        return r;
+      });
+      const netResp = await Promise.resolve()
+        .then(() => Promise.race([netFetchPromise, promiseTimer(NETWORK_TIMEOUT_SHORT, 'reject')]))
+        .catch(() => Promise.race([netFetchPromise, cacheFetchPromise, promiseTimer(NETWORK_TIMEOUT_LONG, 'reject')]))
+      ;
 
-      // Process response: construct a full page if the response was a frag
-      .then(r => {
-        if (!r) throw new Error('No response available');
-        //console.log('[SW] Fetch', fetchReq, r);
-        if (r.headers.get('Fragment')) {
-          const head = staticCache.match('/shell/fragments/header');
-          const foot = staticCache.match('/shell/fragments/footer');
-          const mergedResp = mergeResponses([head, r, foot], r.headers);
-          console.log('[SW] Merging frag for ' + fetchReq.url);
-          event.waitUntil(mergedResp.done);
-          return mergedResp.response;
-        } else {
-          return r;
-        }
-      })
-    )
-    .catch(err => {
+      // Debug requests that hit the network
+      //console.log('[SW] Fetch', fetchReq, netResp);
+
+      if (!netResp) throw new Error('No response available');
+
+      if (!netResp.headers.get('Fragment')) return netResp;
+
+      // Construct a full page if the response was a frag
+      const head = staticCache.match('/shell/fragments/header');
+      const foot = staticCache.match('/shell/fragments/footer');
+      const mergedResp = mergeResponses([head, netResp, foot], netResp.headers);
+      console.log('[SW] Merging frag for ' + fetchReq.url);
+
+      // TODO: Why does this error with 'event is already finished'?
+      //event.waitUntil(mergedResp.done);
+
+      return mergedResp.response;
+
+    } catch(err) {
+      console.log("[SW] Fetch fail for "+fetchReq.url, fetchReq, err);
       if (event.request.mode === 'navigate') {
         return caches.match('/shell/offline');
       } else {
-        console.log("[SW] Fetch fail for "+fetchReq.url, err.message);
         return new Response('', {status: 503, statusText: 'Offline'});
       }
-    })
-  ;
+    }
+  }());
 
-  event.respondWith(responsePromise);
 
   // Update cache if needed
-  if (!cacheUpdateInProgress) {
-    const lastUpdateTime = await idbKeyval.get('dynamicCacheUpdateTime');
-    if (!lastUpdateTime || lastUpdateTime < (Date.now() - DYNAMIC_CACHE_UPDATE_INTERVAL)) {
-      console.log('[SW] Incrementally updating dynamic cache...');
-      cacheUpdateInProgress = true;
-      const cache = await caches.open(CACHE_NAME+'-dynamic');
-      const newUrlList = await fetch("/shell/files/dynamic").then(resp => resp.json());
-      const existingUrlList = await cache.keys().then(reqs => reqs.map(r => r.url.replace(/https?\:\/\/[^\/]+/, '')));
-      const urlsToAdd = newUrlList.filter(u => !existingUrlList.includes(u));
-      const urlsToDel = existingUrlList.filter(u => !newUrlList.includes(u));
-      await Promise.all(urlsToDel.map(u => cache.delete(u)).concat(cache.addAll(urlsToAdd)));
-      await idbKeyval.set('dynamicCacheUpdateTime', Date.now());
-      console.log("[SW] Cache update complete.  Deletions: "+urlsToDel.length+", additions: "+urlsToAdd.length);
-      cacheUpdateInProgress = false;
-    }
-  }
+  /*if (!cacheUpdateInProgress) {
+    (async () => {
+      const lastUpdateTime = await idbKeyval.get('dynamicCacheUpdateTime');
+      if (!lastUpdateTime || lastUpdateTime < (Date.now() - DYNAMIC_CACHE_UPDATE_INTERVAL)) {
+        console.log('[SW] Incrementally updating dynamic cache...');
+        cacheUpdateInProgress = true;
+        const cache = await caches.open(CACHE_NAME+'-dynamic');
+        const newUrlList = await fetch("/shell/files/dynamic").then(resp => resp.json());
+        const existingUrlList = await cache.keys().then(reqs => reqs.map(r => r.url.replace(/https?\:\/\/[^\/]+/, '')));
+        const urlsToAdd = newUrlList.filter(u => !existingUrlList.includes(u));
+        const urlsToDel = existingUrlList.filter(u => !newUrlList.includes(u));
+        await Promise.all(urlsToDel.map(u => cache.delete(u)).concat(cache.addAll(urlsToAdd)));
+        await idbKeyval.set('dynamicCacheUpdateTime', Date.now());
+        console.log("[SW] Cache update complete.  Deletions: "+urlsToDel.length+", additions: "+urlsToAdd.length);
+        cacheUpdateInProgress = false;
+      }
+    })();
+  }*/
 });
 
 

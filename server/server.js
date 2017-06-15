@@ -61,6 +61,7 @@ app.use(require('./routes/shell'));
 // Return a 404 if no routes match
 app.use((req, res, next) => {
   if (req.app.locals.frag) res.set('Fragment', 1);
+  res.set('Cache-Control', 'max-age=0; private');
   res.status(404).render("not-found");
 });
 

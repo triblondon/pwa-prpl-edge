@@ -3,17 +3,19 @@ const content = require('../content');
 const fetch = require('node-fetch');
 
 const router = express.Router();
+const fastlyApiHeaders = {
+  'Fastly-Key': process.env.FASTLY_API_TOKEN,
+  'Fastly-Soft-Purge': 1
+};
 
 const sendPurge = id => {
-  return fetch("https://api.fastly.com/service/" + process.env.FASTLY_SERVICE_ID + "/purge/articles/" + id, {
-    method: 'POST',
-    headers: {
-      'Fastly-Key': process.env.FASTLY_API_TOKEN,
-      'Fastly-Soft-Purge': 1
-    }
-  })
-    .then(resp => resp.json())
-    .then(data => console.log('purged ' + id, data))
+  const url = "https://api.fastly.com/service/" + process.env.FASTLY_SERVICE_ID + "/purge";
+  return Promise.all(
+    [
+      fetch(url + "/articles/" + id, { method: 'POST', headers: fastlyApiHeaders }).then(resp => resp.json()),
+      fetch(url + "/indexes", { method: 'POST', headers: fastlyApiHeaders }).then(resp => resp.json())
+    ])
+    .then(([data1, data2]) => console.log('purged ' + id, url, data1, data2))
   ;
 };
 
@@ -48,7 +50,18 @@ const suspendHandler = (req, res) => {
   }
 };
 
-content.on('deletedArticle', sendPurge);
+// Enable purging if connected to a Fastly service
+if (process.env.FASTLY_SERVICE_ID) {
+
+  // On startup, purge-all
+  fetch("https://api.fastly.com/service/" + process.env.FASTLY_SERVICE_ID + "/purge_all", { method: 'POST', headers: fastlyApiHeaders })
+    .then(resp => resp.json())
+    .then(data => console.log('Startup: purge all', data))
+  ;
+
+  // Purge articles when they disappear from the content API
+  content.on('deletedArticle', sendPurge);
+}
 
 router.get('/', indexHandler);
 router.get('/topics/:topic', indexHandler);
