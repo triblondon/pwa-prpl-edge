@@ -12,6 +12,20 @@ const distance = (lat1, lon1, lat2, lon2, unit) => {
   return dist
 }
 
+const period = sec => {
+  const month = Math.round((365/12) * 24 * 60 * 60);
+  const day = 24 * 60 * 60;
+  const hour = 60 * 60;
+  const minute = 60;
+  return (sec > (3*month)) ? Math.round(sec/month) + ' months' :
+    (sec > (2*day)) ? Math.round(sec/day) + ' days' :
+    (sec > (2*hour)) ? Math.round(sec/hour) + ' hours' :
+    (sec > (2*minute)) ? Math.round(sec/minute) + ' min' :
+    sec + ' sec'
+  ;
+};
+
+
 const getDatacenterMeta = code => Promise.resolve(
   localStorage.datacenters ? JSON.parse(localStorage.datacenters)[code] : (() => {
     return fetch("/datacenters")
@@ -56,7 +70,7 @@ const getEdgeTimingData = () => {
   if (cookieStr) {
     return JSON.parse(cookieStr);
   } else if (['127.0.0.1', 'localhost'].includes(location.hostname)) {
-    return {"source": "test", "edgeID":"cache-sjc3132-SJC","edgeDatacenter":"SJC","edgeIP":"151.101.41.209","edgeCacheState":"HIT","edgeObjectHash":"0.902","edgeVCLVer":"39MzaFBISKerFJYsFCqa4U.28_9-098a41bd2a0bade8b9b0217f0b3a8336","edgeElapsedTimeMS":30,"edgeCacheHitCount":1,"edgeTTL":3600,"edgeObjectAge":4001,"edgeSWR":300,"edgeSIE":86400,"clientIP":"8.18.217.202","clientLat":37.786,"clientLng":-122.436,"clientCity":"san francisco","clientBrowserName":"Chrome","clientBrowserVer":"","clientIsMobile":"0","backendID":"shield__cache_sjc3132_SJC__sjc_ca_us","backendIP":"216.58.192.20","backendName":"39MzaFBISKerFJYsFCqa4U--F_Google_App_Engine","x":true};
+    return {"source": "test", "edgeID":"cache-sjc3132-SJC","edgeDatacenter":"SJC","edgeIP":"151.101.41.209","edgeCacheState":"HIT","edgeObjectHash":"0.902","edgeVCLVer":"39MzaFBISKerFJYsFCqa4U.28_9-098a41bd2a0bade8b9b0217f0b3a8336","edgeElapsedTimeMS":30,"edgeObjCacheHitCount":1,"edgeObjTTL":3600,"edgeObjAge":4001,"edgeObjSWR":300,"edgeObjSIE":86400,"clientIP":"8.18.217.202","clientLat":37.786,"clientLng":-122.436,"clientCity":"san francisco","clientBrowserName":"Chrome","clientBrowserVer":"","clientIsMobile":"0","backendID":"shield__cache_sjc3132_SJC__sjc_ca_us","backendIP":"216.58.192.20","backendName":"39MzaFBISKerFJYsFCqa4U--F_Google_App_Engine","x":true};
   } else {
     return {};
   }
@@ -85,30 +99,31 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
           encodedBodySize: connData.encodedBodySize,
           decodedBodySize: connData.decodedBodySize
         });
-        if (netInfo.transferSize === 0) {
+        if (netInfo.transferSize === 0 && !("source" in netInfo)) {
           netInfo.source = 'httpCache';
         }
         netInfo.overheadMS = netInfo.responseEnd - netInfo.navigationStart - netInfo.dnsTimeMS - netInfo.tcpTimeMS - netInfo.reqTimeMS - netInfo.resTimeMS;
         netInfo.sendTimeMS = (netInfo.dnsTimeMS + netInfo.tcpTimeMS + netInfo.reqTimeMS) - netInfo.edgeElapsedTimeMS;
         if (netInfo.edgeCacheState) {
-          if (netInfo.edgeCacheState.toLowerCase().startsWith('miss')) {
+          netInfo.edgeCacheState = netInfo.edgeCacheState.toLowerCase();
+          if (netInfo.edgeCacheState.startsWith('miss')) {
             netInfo.edgeObjectState = 'Not in cache (MISS)';
-          } else if (netInfo.edgeCacheState.toLowerCase().startsWith('pass')) {
+          } else if (netInfo.edgeCacheState.startsWith('pass') || netInfo.edgeCacheState.startsWith('hitpass')) {
             netInfo.edgeObjectState = 'Not eligible for caching (PASS)';
-          } else if (netInfo.edgeCacheState.toLowerCase().startsWith('hit')) {
-            if (netInfo.edgeObjectAge < netInfo.edgeTTL) {
-              netInfo.edgeObjectState = 'Fresh in cache (HIT)';
-              netInfo.edgeObjectStateDesc = netInfo.edgeCacheHitCount+' hits, remaining TTL '+(netInfo.edgeTTL-netInfo.edgeObjectAge)+'s';
-            } else if (netInfo.edgeObjectAge < (netInfo.edgeTTL + netInfo.edgeSWR)) {
+          } else if (netInfo.edgeCacheState.startsWith('hit-stale')) {
+            if (netInfo.edgeObjRemainingSWR) {
               netInfo.edgeObjectState = 'Stale while revalidating (HIT)';
-              netInfo.edgeObjectStateDesc = 'Revalidation time remaining: '+((netInfo.edgeTTL + netInfo.edgeSWR)-netInfo.edgeObjectAge)+'s';
-            } else if (netInfo.edgeObjectAge < (netInfo.edgeTTL + netInfo.edgeSIE)) {
+              netInfo.edgeObjectStateDesc = 'Revalidation time remaining: '+period(netInfo.edgeObjRemainingSWR);
+            } else if (netInfo.edgeObjRemainingSIE) {
               netInfo.edgeObjectState = 'Stale due to origin failure (HIT)';
-              netInfo.edgeObjectStateDesc = 'Using while origin down for up to another '+((netInfo.edgeTTL + netInfo.edgeSIE)-netInfo.edgeObjectAge)+'s';
+              netInfo.edgeObjectStateDesc = 'Using while origin down for up to another '+period(netInfo.edgeObjRemainingSIE);
             } else {
               netInfo.edgeObjectState = 'Stale HIT';
-              netInfo.edgeObjectStateDesc = 'Unknown reason for cache hit';
+              netInfo.edgeObjectStateDesc = 'Unknown reason for stale hit';
             }
+          } else if (netInfo.edgeCacheState.startsWith('hit')) {
+            netInfo.edgeObjectState = 'Fresh in cache (HIT)';
+            netInfo.edgeObjectStateDesc = netInfo.edgeObjCacheHitCount+' hits, remaining TTL '+period(netInfo.edgeObjRemainingTTL);
           } else {
             netInfo.edgeObjectState = netInfo.edgeCacheState;
           }
@@ -157,7 +172,7 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
         if ('clientCity' in netInfo) {
           netInfo['clientCity'] = netInfo['clientCity'].replace(/\b\w/g, l => l.toUpperCase());
         }
-        const cacheClass = ('edgeCacheState' in netInfo && netInfo.edgeCacheState.startsWith('HIT')) ? 'netinfo--hit' : 'netinfo--miss';
+        const cacheClass = ('edgeCacheState' in netInfo && netInfo.edgeCacheState.startsWith('hit')) ? 'netinfo--hit' : 'netinfo--miss';
         if (cacheClass === 'netinfo--hit') {
           netInfo.edgeProcessingTimeMS = (netInfo.edgeElapsedTimeMS || 0);
         } else {
@@ -165,7 +180,7 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
         }
         document.getElementById('netinfo').classList.add(cacheClass);
         document.getElementById('netinfo').querySelectorAll('[data-netinfo]').forEach(el => {
-          el.innerHTML = netInfo[el.dataset.netinfo];
+          el.innerHTML = (netInfo[el.dataset.netinfo] === undefined) ? '' : netInfo[el.dataset.netinfo];
         });
 
         const timingBar = {
