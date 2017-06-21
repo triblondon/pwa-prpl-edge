@@ -55,6 +55,10 @@ router.get('/shell/not-found', (req, res) => {
 });
 
 router.get('/datacenters', (req, res) => {
+  if (!process.env.FASTLY_API_TOKEN) {
+    res.json({});
+    return;
+  }
   fetch("https://api.fastly.com/datacenters", {headers: { "Fastly-Key": process.env.FASTLY_API_TOKEN }})
     .then(resp => resp.json())
     .then(jsonData => {
