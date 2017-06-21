@@ -10,7 +10,7 @@ function promiseTimer(duration, resolution) {
 const NETWORK_TIMEOUT_SHORT = 1 * 1000;
 const NETWORK_TIMEOUT_LONG = 5 * 1000;
 const DYNAMIC_CACHE_UPDATE_INTERVAL = (location.hostname === 'localhost') ? (1 * 1000) : (60 * 60 * 1000);
-const CACHE_NAME = 'v17';
+const CACHE_NAME = 'v18';
 
 const responseMetaData = new Map();
 let cacheUpdateInProgress = false;

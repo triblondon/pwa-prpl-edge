@@ -1,5 +1,4 @@
 const express = require('express');
-const SSE = require('sse-node');
 const content = require('../content');
 const fetch = require('node-fetch');
 
@@ -9,6 +8,8 @@ const fastlyApiHeaders = {
   'Fastly-Soft-Purge': 1
 };
 const MAX_PURGE_COUNT = 10;
+
+const sse = SSEChannel();
 
 const changeSetToSKeys = changeSet => {
   let keys = [];
@@ -69,18 +70,16 @@ const refreshHandler = (req, res) => {
   });
 };
 
-const streamHandler = (req, res) => {
-  const client = SSE(req, res, {ping: 5000});
-  content.on('contentChange', changeSet => {
-    const keysChanged = changeSetToSKeys(changeSet);
-    const keysToStream = req.params.key.split('/').map((tok, idx, all) => all.slice(0, idx+1).join('/'));
-    const intersect = keysChanged.find(k => keysToStream.includes(k));
-    if (intersect) {
-      client.send({event:'update', key:intersect, time:Date.now()}, 'contentChange');
-    }
-  });
-};
+const streamHandler = (req, res) => sse.subscribe(req, res);
 
+content.on('contentChange', changeSet => {
+  const keysChanged = changeSetToSKeys(changeSet);
+  const keysToStream = req.params.key.split('/').map((tok, idx, all) => all.slice(0, idx+1).join('/'));
+  const intersect = keysChanged.find(k => keysToStream.includes(k));
+  if (intersect) {
+    sse.publish({event:'update', key:intersect, time:Date.now()}, 'contentChange');
+  }
+});
 
 // Enable purging if connected to a Fastly service
 if (process.env.FASTLY_SERVICE_ID) {
