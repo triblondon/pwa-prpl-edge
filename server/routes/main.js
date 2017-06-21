@@ -1,6 +1,7 @@
 const express = require('express');
 const content = require('../content');
 const fetch = require('node-fetch');
+const SSEChannel = require('../lib/sse');
 
 const router = express.Router();
 const fastlyApiHeaders = {
