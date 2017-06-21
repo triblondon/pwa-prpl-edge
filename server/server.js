@@ -15,6 +15,8 @@ const hbs = require('./lib/view-engine')({ helpers: {
   not: x => !x
 }});
 
+process.on('unhandledRejection', reason => console.log(reason));
+
 app.engine('.hbs', hbs.engine);
 app.set('view engine', '.hbs');
 

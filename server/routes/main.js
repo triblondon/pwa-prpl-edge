@@ -68,18 +68,14 @@ const refreshHandler = (req, res) => {
   content.fetchNewContent().then(changeSet => {
     res.set("Cache-Control", "private, no-store");
     res.json({topicCount: changeSet.topicsAffected.size, articleCount: changeSet.articlesAffected.size});
-  });
+  }).catch(e => res.json(e));
 };
 
 const streamHandler = (req, res) => sse.subscribe(req, res);
 
 content.on('contentChange', changeSet => {
   const keysChanged = changeSetToSKeys(changeSet);
-  const keysToStream = req.params.key.split('/').map((tok, idx, all) => all.slice(0, idx+1).join('/'));
-  const intersect = keysChanged.find(k => keysToStream.includes(k));
-  if (intersect) {
-    sse.publish({event:'update', key:intersect, time:Date.now()}, 'contentChange');
-  }
+  sse.publish({event:'update', keysChanged:keysChanged, time:Date.now()}, 'contentChange');
 });
 
 // Enable purging if connected to a Fastly service

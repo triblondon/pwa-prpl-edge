@@ -52,7 +52,6 @@ const getGeoIPMeta = ip => {
   })());
 };
 
-
 const getServerTimingData = () => {
   return performance
     .getEntriesByName(location.href)
@@ -63,6 +62,24 @@ const getServerTimingData = () => {
     }, {})
   ;
 };
+
+function getNavigationTimingData() {
+  return new Promise(resolve => {
+
+    // If there is no SW controller, use timing data measured from the tab instead
+    if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return resolve(performance.timing);
+
+    const messageChannel = new MessageChannel();
+    messageChannel.port1.onmessage = event => {
+      if (event.data.status === 'ok') {
+        resolve(event.data.data);
+      } else {
+        throw new Error(event.data.message || "Failed to get perf data from Serviceworker");
+      }
+    };
+    navigator.serviceWorker.controller.postMessage({name:"getPerfEntries", data: {url: location.href}}, [messageChannel.port2]);
+  });
+}
 
 const getEdgeTimingData = () => {
   const readCookie = (k,r) => (r=RegExp('(^|; )'+encodeURIComponent(k)+'=([^;]*)').exec(document.cookie)) ? r[2] : null;
@@ -103,7 +120,7 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
           netInfo.source = 'httpCache';
         }
         netInfo.overheadMS = netInfo.responseEnd - netInfo.navigationStart - netInfo.dnsTimeMS - netInfo.tcpTimeMS - netInfo.reqTimeMS - netInfo.resTimeMS;
-        netInfo.sendTimeMS = (netInfo.dnsTimeMS + netInfo.tcpTimeMS + netInfo.reqTimeMS) - netInfo.edgeElapsedTimeMS;
+        netInfo.sendTimeMS = (netInfo.dnsTimeMS + netInfo.tcpTimeMS + netInfo.reqTimeMS) - (netInfo.edgeElapsedTimeMS || 0);
         if (netInfo.edgeCacheState) {
           netInfo.edgeCacheState = netInfo.edgeCacheState.toLowerCase();
           if (netInfo.edgeCacheState.startsWith('miss')) {
@@ -172,11 +189,11 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
         if ('clientCity' in netInfo) {
           netInfo['clientCity'] = netInfo['clientCity'].replace(/\b\w/g, l => l.toUpperCase());
         }
-        const cacheClass = ('edgeCacheState' in netInfo && netInfo.edgeCacheState.startsWith('hit')) ? 'netinfo--hit' : 'netinfo--miss';
+        const cacheClass = (!('edgeCacheState' in netInfo)) ? 'netinfo--nocache' : netInfo.edgeCacheState.startsWith('hit') ? 'netinfo--hit' : 'netinfo--miss';
         if (cacheClass === 'netinfo--hit') {
 
           // Remove the backend exec time if it's a hit
-          netInfo.backendExecTimeMS = null;
+          netInfo.backendExecTimeMS = undefined;
           netInfo.edgeProcessingTimeMS = (netInfo.edgeElapsedTimeMS || 0);
         } else {
           netInfo.edgeProcessingTimeMS = (netInfo.edgeElapsedTimeMS || 0) - (netInfo.backendExecTimeMS || 0);

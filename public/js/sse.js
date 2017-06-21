@@ -4,7 +4,7 @@ window.addEventListener('load', () => {
     var key = location.pathname.replace(/\/$/, '');
     var es = new EventSource("/event-stream/"+(key || 'top'));
     es.addEventListener('contentChange', ev => {
-      console.log(ev.data);
+      console.log(ev.data, JSON.parse(ev.data));
     });
   }
 
