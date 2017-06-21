@@ -10,7 +10,7 @@ function promiseTimer(duration, resolution) {
 const NETWORK_TIMEOUT_SHORT = 1 * 1000;
 const NETWORK_TIMEOUT_LONG = 5 * 1000;
 const DYNAMIC_CACHE_UPDATE_INTERVAL = (location.hostname === 'localhost') ? (1 * 1000) : (60 * 60 * 1000);
-const CACHE_NAME = 'v11';
+const CACHE_NAME = 'v17';
 
 const responseMetaData = new Map();
 let cacheUpdateInProgress = false;
@@ -159,89 +159,6 @@ self.addEventListener('activate', (event) => {
       })
   );
 });
-
-/*
-self.addEventListener('push', (event) => {
-  console.info('[SW] Received push');
-
-  var title = 'Push notification demo';
-  var body = {
-    'body': 'click to return to application',
-    'tag': 'demo',
-    'icon': './images/icons/192x192.png',
-    'badge': './images/icons/192x192.png',
-    //Custom actions buttons
-    'actions': [
-      { 'action': 'yes', 'title': 'Yes'},
-      { 'action': 'no', 'title': 'No'}
-    ]
-  };
-
-  event.waitUntil(self.registration.showNotification(title, body));
-});
-
-self.addEventListener('notificationclick', event => {
-
-  // TODO: Can this be detected from location.hostname?
-  console.log('[SW] Notification click', location.hostname);
-  const appBaseUrl = 'https://pwa.fastlydemo.net/';
-
-  // Listen to custom action buttons in push notification
-  if (event.action === 'yes') {
-    console.log('[SW] Notification click: yes');
-  }
-  else if (event.action === 'no') {
-    console.warn('[SW] Notification click: no');
-  }
-
-  event.notification.close();
-
-  // If the site is already open in a tab, focus the tab.  If not, open a new tab.
-  event.waitUntil(
-    clients.matchAll({type: 'window'})
-    .then(clients => {
-      for (var i = 0; i < clients.length; i++) {
-        const client = clients[i];
-        if (client.url.startsWith(appBaseUrl) && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow('/');
-      }
-    })
-    .catch((error) => {
-      console.error(error);
-    })
-  );
-});
-*/
-
-/*
-  BACKGROUND SYNC EVENT: triggers after `bg sync` registration and page has network connection.
-  It will try and fetch github username, if its fulfills then sync is complete. If it fails,
-  another sync is scheduled to retry (will will also waits for network connection)
-*/
-/*
-self.addEventListener('sync', (event) => {
-  console.info('Event: Sync');
-
-  // Check registered sync name or emulated sync from devTools
-  if (event.tag === 'github' || event.tag === 'test-tag-from-devtools') {
-    event.waitUntil(
-      //To check all opened tabs and send postMessage to those tabs
-      self.clients.matchAll().then((all) => {
-        return all.map((client) => {
-          return client.postMessage('online'); //To make fetch request, check app.js - line no: 122
-        })
-      })
-      .catch((error) => {
-        console.error(error);
-      })
-    );
-  }
-});
-*/
 
 self.addEventListener('message', function(event) {
   console.log('[SW] Message', event.data);

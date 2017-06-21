@@ -174,13 +174,22 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
         }
         const cacheClass = ('edgeCacheState' in netInfo && netInfo.edgeCacheState.startsWith('hit')) ? 'netinfo--hit' : 'netinfo--miss';
         if (cacheClass === 'netinfo--hit') {
+
+          // Remove the backend exec time if it's a hit
+          netInfo.backendExecTimeMS = null;
           netInfo.edgeProcessingTimeMS = (netInfo.edgeElapsedTimeMS || 0);
         } else {
           netInfo.edgeProcessingTimeMS = (netInfo.edgeElapsedTimeMS || 0) - (netInfo.backendExecTimeMS || 0);
         }
         document.getElementById('netinfo').classList.add(cacheClass);
         document.getElementById('netinfo').querySelectorAll('[data-netinfo]').forEach(el => {
-          el.innerHTML = (netInfo[el.dataset.netinfo] === undefined) ? '' : netInfo[el.dataset.netinfo];
+          if (netInfo[el.dataset.netinfo] === undefined || Number.isNaN(netInfo[el.dataset.netinfo])) {
+            el.style.display = 'none';
+          } else if (el.querySelector('i')) {
+            el.querySelector('i').innerHTML = netInfo[el.dataset.netinfo];
+          } else {
+            el.innerHTML = netInfo[el.dataset.netinfo];
+          }
         });
 
         const timingBar = {

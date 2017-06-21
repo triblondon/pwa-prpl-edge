@@ -9,3 +9,7 @@
 	</li>
 	{{/each}}
 </ul>
+
+{{#if (not topic) }}
+<p><a href='/refresh-content'>Check for new content</a></p>
+{{/if}}

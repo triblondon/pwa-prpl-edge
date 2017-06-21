@@ -1,4 +1,5 @@
 const express = require('express');
+const SSE = require('sse-node');
 const content = require('../content');
 const fetch = require('node-fetch');
 
@@ -7,65 +8,89 @@ const fastlyApiHeaders = {
   'Fastly-Key': process.env.FASTLY_API_TOKEN,
   'Fastly-Soft-Purge': 1
 };
+const MAX_PURGE_COUNT = 10;
 
-const sendPurge = id => {
+const changeSetToSKeys = changeSet => {
+  let keys = [];
+  if (changeSet.topicsAffected.size > MAX_PURGE_COUNT) {
+    keys = keys.concat(['topics']);
+  } else {
+    keys = keys.concat(Array.from(changeSet.topicsAffected).map(tid => 'topics/'+tid));
+  }
+  if (changeSet.articlesAffected.size > MAX_PURGE_COUNT) {
+    keys = keys.concat(['articles']);
+  } else {
+    keys = keys.concat(Array.from(changeSet.articlesAffected).map(aid => 'articles/'+aid));
+  }
+  if (keys.length) {
+    keys.push('top');
+  }
+  return keys;
+}
+
+const sendPurges = changeSet => {
   const url = "https://api.fastly.com/service/" + process.env.FASTLY_SERVICE_ID + "/purge";
-  return Promise.all(
-    [
-      fetch(url + "/articles/" + id, { method: 'POST', headers: fastlyApiHeaders }).then(resp => resp.json()),
-      fetch(url + "/indexes", { method: 'POST', headers: fastlyApiHeaders }).then(resp => resp.json())
-    ])
-    .then(([data1, data2]) => console.log('purged ' + id, url, data1, data2))
-  ;
+  const fetchOpts = { method: 'POST', headers: fastlyApiHeaders };
+  const purgeQueue = changeSetToSKeys(changeSet);
+  console.log("Purging", changeSet, purgeQueue);
+  return Promise.all(purgeQueue.map(skey => fetch(url + "/" + skey, fetchOpts).then(resp => resp.json()))).then(() => true);
 };
 
 const indexHandler = (req, res) => {
   const locals = {};
+  const skeys = [];
   if (req.params.topic) {
+    skeys.push('topics');
+    skeys.push('topics/'+req.params.topic);
     locals.topic = req.params.topic;
     locals.articles = content.getArticlesbyTopic(req.params.topic);
   } else {
+    skeys.push('top');
     locals.articles = content.getArticles();
   }
-  res.set('Surrogate-Key', locals.articles.map(a => 'articles/'+a.id).join(' '));
+  skeys.push(locals.articles.map(a => 'articles/'+a.id));
+  res.set('Surrogate-Key', skeys.join(' '));
   if (req.app.locals.frag) res.set('Fragment', 1);
   res.render('news-index', locals );
 };
 
-const articleHandler = (req, res, next) => {
+const articleHandler = (req, res) => {
   const article = content.getArticle(req.params.id);
   if (!article) return next();
-  res.set('Surrogate-Key', 'articles/'+article.id);
+  res.set('Surrogate-Key', 'articles articles/'+article.id);
   if (req.app.locals.frag) res.set('Fragment', 1);
   res.render('article', {article});
 };
 
-const suspendHandler = (req, res) => {
-  const article = content.getArticle(req.body.id);
-  if (article) {
-    content.suspendArticle(article.id);
-    res.json(true);
-  } else {
-    res.json({status:'error', msg:'No such article found'});
-  }
+const refreshHandler = (req, res) => {
+  content.fetchNewContent().then(changeSet => {
+    res.set("Cache-Control", "private, no-store");
+    res.json({topicCount: changeSet.topicsAffected.size, articleCount: changeSet.articlesAffected.size});
+  });
 };
+
+const streamHandler = (req, res) => {
+  const client = SSE(req, res, {ping: 5000});
+  content.on('contentChange', changeSet => {
+    const keysChanged = changeSetToSKeys(changeSet);
+    const keysToStream = req.params.key.split('/').map((tok, idx, all) => all.slice(0, idx+1).join('/'));
+    const intersect = keysChanged.find(k => keysToStream.includes(k));
+    if (intersect) {
+      client.send({event:'update', key:intersect, time:Date.now()}, 'contentChange');
+    }
+  });
+};
+
 
 // Enable purging if connected to a Fastly service
 if (process.env.FASTLY_SERVICE_ID) {
-
-  // On startup, purge-all
-  fetch("https://api.fastly.com/service/" + process.env.FASTLY_SERVICE_ID + "/purge_all", { method: 'POST', headers: fastlyApiHeaders })
-    .then(resp => resp.json())
-    .then(data => console.log('Startup: purge all', data))
-  ;
-
-  // Purge articles when they disappear from the content API
-  content.on('deletedArticle', sendPurge);
+  content.on('contentChange', sendPurges);
 }
 
 router.get('/', indexHandler);
 router.get('/topics/:topic', indexHandler);
 router.get('/articles/:id', articleHandler);
-router.post('/suspend-article', suspendHandler);
+router.get('/refresh-content', refreshHandler);
+router.get('/event-stream/:key', streamHandler);
 
 module.exports = router;

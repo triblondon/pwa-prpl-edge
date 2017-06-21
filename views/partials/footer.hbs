@@ -7,17 +7,17 @@
           <img src='{{getVersionedPath "/images/icons/laptop.svg"}}' alt='Laptop representing you' />
           <h3>You</h3>
           <ul>
-            <li><span data-netinfo='clientCity'>Locating...</span></li>
-            <li><span data-netinfo='clientIP'></span></li>
+            <li data-netinfo='clientCity'>Locating...</li>
+            <li data-netinfo='clientIP'></li>
           </ul>
         </div>
         <div class='netinfo__conn netinfo__conn--client'>
-          <div class='netinfo__connlabel'><span data-netinfo='sendTimeMS'></span>ms</div>
+          <div class='netinfo__connlabel'><span data-netinfo='sendTimeMS'><i></i>ms</span></div>
           <div class='netinfo__connline netinfo__connline--right'></div>
           <div class='netinfo__connlabel'></div>
           <div class='netinfo__connline netinfo__connline--left'></div>
-          <div class='netinfo__connlabel'><span data-netinfo='resTimeMS'></span>ms</div>
-          <div class='netinfo__connlabel netinfo__connlabel--bottom'><span data-netinfo='clientDistance'></span>km</div>
+          <div class='netinfo__connlabel'><span data-netinfo='resTimeMS'><i></i>ms</span></div>
+          <div class='netinfo__connlabel netinfo__connlabel--bottom' data-netinfo='clientDistance'><i></i>km</div>
         </div>
         <div class='netinfo__offline netinfo__node'>
           <img src='{{getVersionedPath "/images/icons/offline.svg"}}' alt='Offline' />
@@ -30,9 +30,9 @@
           <img src='{{getVersionedPath "/images/icons/fastly.svg"}}' alt='Fastly logo' />
           <h3>Fastly</h3>
           <ul>
-            <li><span data-netinfo='edgeCity'>Locating...</span></li>
-            <li><span data-netinfo='edgeID'></span></li>
-            <li><span data-netinfo='edgeProcessingTimeMS' title='Fastly processing time'></span>ms</li>
+            <li data-netinfo='edgeCity'>Locating...</li>
+            <li data-netinfo='edgeID'></li>
+            <li data-netinfo='edgeProcessingTimeMS' title='Fastly processing time'><i></i>ms</li>
           </ul>
         </div>
         <div class='netinfo__conn netinfo__conn--backend'>
@@ -41,23 +41,23 @@
           <div class='netinfo__connlabel'><span data-netinfo='edgeObjectState'></span></div>
           <div class='netinfo__connline netinfo__connline--left'></div>
           <div class='netinfo__connlabel'></div>
-          <div class='netinfo__connlabel netinfo__connlabel--bottom'><span data-netinfo='backendDistance'></span>km</div>
+          <div class='netinfo__connlabel netinfo__connlabel--bottom' data-netinfo='backendDistance'><i></i>km</div>
         </div>
         <div class='netinfo__turnarrow'><img src='{{getVersionedPath "/images/turn-around.svg" }}' /></div>
         <div class='netinfo__hit-meta netinfo__descr'>
           <div class='netinfo__descr-block'>
-            <div><span data-netinfo='edgeObjectState'></span></div>
-            <div class='netinfo__minor'><span data-netinfo='edgeObjectStateDesc'></span></div>
+            <div data-netinfo='edgeObjectState'></div>
+            <div class='netinfo__minor' data-netinfo='edgeObjectStateDesc'></div>
           </div>
-          <div class='netinfo__connlabel netinfo__connlabel--bottom'><span data-netinfo='backendDistance'></span>km</div>
+          <div class='netinfo__connlabel netinfo__connlabel--bottom' data-netinfo='backendDistance'><i></i>km</div>
        </div>
         <div class='netinfo__backend netinfo__node'>
           <img src='{{getVersionedPath "/images/icons/server.svg"}}' alt='Server' />
           <h3>Origin</h3>
           <ul>
-            <li><span data-netinfo='backendCity'>Locating...</span></li>
-            <li><span data-netinfo='backendIP'></span></li>
-            <li><span data-netinfo='backendExecTimeMS' title='Backend execution time'></span>ms</li>
+            <li data-netinfo='backendCity'>Locating...</li>
+            <li data-netinfo='backendIP'></li>
+            <li data-netinfo='backendExecTimeMS' title='Backend execution time' class='tip'><i></i>ms</li>
           </ul>
         </div>
       </div>
@@ -75,7 +75,7 @@
   <script src="{{getVersionedPath "/js/tippy.min.js"}}" defer></script>
   <script src="{{getVersionedPath "/js/sw-connect.js"}}" defer></script>
   <script src="{{getVersionedPath "/js/net-info.js"}}" defer></script>
-  <script src="{{getVersionedPath "/js/purge.js"}}" defer></script>
   <script src="{{getVersionedPath "/js/analytics.js"}}" defer></script>
+  <script src="{{getVersionedPath "/js/sse.js"}}" defer></script>
   </body>
 </html>

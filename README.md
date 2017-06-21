@@ -3,9 +3,6 @@
 ## Priorities
 
 - [ ] Test purging using surrogate keys
-- [ ] Update the dynamic cache every few hours
-- [ ] Purge on content update
-- [ ] Server Push
 
 #### Loading scenarios
 
@@ -47,6 +44,7 @@
 - [x] Don't cache surrogate-key-enhanced responses on the client-side
 - [x] Bar visualisation
 - [x] Surface object age, TTL, SWR and SIE times
+- [x] Purge on content update
 - [ ] Surface browser name and version
 
 ### Stream splicing in serviceworker
@@ -61,13 +59,13 @@
 
 - [x] Display an offline frag if the frag we need is not available
 - [x] Download articles for offline viewing into a dynamic cache
-- [ ] Update the dynamic cache every few hours
+- [x] Update the dynamic cache every few hours
 
 ### Server push
 
-- [ ] Add link headers to any full page request
-- [ ] Make sure all Pushed resources are cachable
-- [ ] Remove the link headers in vcl_deliver (see Jake's H2 post)
+- [x] Add link headers to any full page request
+- [x] Make sure all Pushed resources are cachable
+- [x] Remove the link headers in vcl_deliver (see Jake's H2 post)
 
 ### Purging
 

@@ -10,7 +10,7 @@ const staticFiles = [
   '/css/styles.css',
   '/css/ux-platform.css',
   '/js/net-info.js',
-  '/js/purge.js',
+  '/js/sse.js',
   '/js/analytics.js',
   '/js/sw-connect.js',
   '/images/icons/16x16.png',

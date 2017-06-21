@@ -10,7 +10,10 @@ const serveStatic = require('./lib/static-assets');
 const PORT = process.env.PORT || 3100;
 
 const app = express();
-const hbs = require('./lib/view-engine')({helpers: { getVersionedPath: serveStatic.getVersionedPath } });
+const hbs = require('./lib/view-engine')({ helpers: {
+  getVersionedPath: serveStatic.getVersionedPath,
+  not: x => !x
+}});
 
 app.engine('.hbs', hbs.engine);
 app.set('view engine', '.hbs');
@@ -36,7 +39,7 @@ app.use((req, res, next) => {
     const pushUrls = serveStatic.getAssetsForPush();
     res.set('Link', pushUrls.map(url => {
       const type = url.endsWith('.css') ? "style" : url.endsWith('.svg') ? "image" : "font";
-      return '<' + url + '>;rel=preload;as='+type+';';
+      return '<' + url + '>;rel=preload;x-http2-push-only;as='+type+';';
     }));
   }
   next();
