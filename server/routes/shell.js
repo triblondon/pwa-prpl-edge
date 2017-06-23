@@ -5,14 +5,16 @@ const content = require('../content');
 const router = express.Router();
 
 router.get('/shell/fragments/header', (req, res) => {
+  res.set('Surrogate-Key', 'all shell');
 	res.render('blank', {withHeader: true, withFooter: false});
 });
 router.get('/shell/fragments/footer', (req, res) => {
+  res.set('Surrogate-Key', 'all shell');
 	res.render('blank', {withHeader: false, withFooter: true});
 });
 
 router.get('/shell/files/dynamic', (req, res, next) => {
-  res.set('Surrogate-Key', 'indexes');
+  res.set('Surrogate-Key', 'all indexes');
   res.json([].concat(
     content.getArticleIDs().map(id => "/articles/"+id+"?frag=1"),
     content.getTopics().map(topic => "/topics/"+topic+"?frag=1"),
@@ -21,10 +23,12 @@ router.get('/shell/files/dynamic', (req, res, next) => {
 });
 
 router.get('/shell/offline', (req, res) => {
+  res.set('Surrogate-Key', 'all shell');
   if (req.app.locals.frag) res.set('Fragment', 1);
 	res.render('offline');
 });
 router.get('/shell/not-found', (req, res) => {
+  res.set('Surrogate-Key', 'all shell');
   if (req.app.locals.frag) res.set('Fragment', 1);
 	res.render('not-found');
 });

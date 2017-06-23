@@ -25,22 +25,21 @@ const changeSetToSKeys = changeSet => {
     keys = keys.concat(Array.from(changeSet.articlesAffected).map(aid => 'articles/'+aid));
   }
   if (keys.length) {
-    keys.push('top');
+    keys.push('top', 'indexes');
   }
   return keys;
 }
 
-const sendPurges = changeSet => {
+const sendPurges = skeys => {
   const url = "https://api.fastly.com/service/" + process.env.FASTLY_SERVICE_ID + "/purge";
   const fetchOpts = { method: 'POST', headers: fastlyApiHeaders };
-  const purgeQueue = changeSetToSKeys(changeSet);
-  console.log("Purging", changeSet, purgeQueue);
-  return Promise.all(purgeQueue.map(skey => fetch(url + "/" + skey, fetchOpts).then(resp => resp.json()))).then(() => true);
+  console.log("Purging", changeSet, skeys);
+  return Promise.all(skeys.map(skey => fetch(url + "/" + skey, fetchOpts).then(resp => resp.json()))).then(() => true);
 };
 
 const indexHandler = (req, res) => {
   const locals = {};
-  const skeys = [];
+  const skeys = ['all'];
   if (req.params.topic) {
     skeys.push('topics');
     skeys.push('topics/'+req.params.topic);
@@ -59,7 +58,7 @@ const indexHandler = (req, res) => {
 const articleHandler = (req, res) => {
   const article = content.getArticle(req.params.id);
   if (!article) return next();
-  res.set('Surrogate-Key', 'articles articles/'+article.id);
+  res.set('Surrogate-Key', 'all articles articles/'+article.id);
   if (req.app.locals.frag) res.set('Fragment', 1);
   res.render('article', {article});
 };
@@ -80,7 +79,8 @@ content.on('contentChange', changeSet => {
 
 // Enable purging if connected to a Fastly service
 if (process.env.FASTLY_SERVICE_ID) {
-  content.on('contentChange', sendPurges);
+  content.on('contentChange', changeSet => sendPurges(changeSetToSKeys(changeSet)));
+  sendPurges(['all']);
 }
 
 router.get('/', indexHandler);
