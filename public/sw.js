@@ -48,6 +48,11 @@ self.addEventListener('fetch', event => {
   const useFrag = (event.request.mode === 'navigate' && FRAG_PAGE_PATTERN.test(event.request.url));
   const fetchReq = useFrag ? new Request(fragUrl.toString(), { mode: 'cors', credentials: 'include' }) : event.request;
 
+  // Disable serviceworker for event streams
+  if (event.request.headers.get('Accept') === 'text/event-stream') {
+    return undefined;
+  }
+
   // If the performance timings buffer fills up, no more perf data will be recorded.  Clear it on each navigation to ensure we don't hit the limit.
   if (event.request.mode === 'navigate') {
     responseMetaData.clear();
@@ -80,7 +85,7 @@ self.addEventListener('fetch', event => {
       // Failing that, try the network if online (but use dynamic cache if network is unavailable or slow)
 
       const cacheFetchPromise = dynamicCache.match(fetchReq).then(r => {
-        r && responseMetaData.set(fetchReq.url, {source:'swCache'}) && console.log('Recording resp from SW cache');
+        r && responseMetaData.set(fetchReq.url, {source:'swCache'});
         return r;
       });
 
@@ -145,7 +150,7 @@ self.addEventListener('fetch', event => {
     (async () => {
       const lastUpdateTime = await idbKeyval.get('dynamicCacheUpdateTime');
       if (!lastUpdateTime || lastUpdateTime < (Date.now() - DYNAMIC_CACHE_UPDATE_INTERVAL)) {
-        console.log('[SW] Incrementally updating dynamic cache...');
+        console.log('[SW] Updating dynamic cache...');
         cacheUpdateInProgress = true;
         const cacheID = await idbKeyval.get('cacheID');
         const cache = await caches.open('v'+cacheID+'-dynamic');
@@ -155,7 +160,7 @@ self.addEventListener('fetch', event => {
         const urlsToDel = existingUrlList.filter(u => !newUrlList.includes(u));
         await Promise.all(urlsToDel.map(u => cache.delete(u)).concat(cache.addAll(urlsToAdd)));
         await idbKeyval.set('dynamicCacheUpdateTime', Date.now());
-        console.log("[SW] Cache update complete.  Deletions: "+urlsToDel.length+", additions: "+urlsToAdd.length);
+        console.log("[SW] Dynamic cache update complete.  Deletions: "+urlsToDel.length+", additions: "+urlsToAdd.length);
         cacheUpdateInProgress = false;
       }
     })();
