@@ -116,6 +116,9 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
           encodedBodySize: connData.encodedBodySize,
           decodedBodySize: connData.decodedBodySize
         });
+        if ('source' in connData) {
+          netInfo.source = connData.source;
+        }
         if (netInfo.transferSize === 0 && !("source" in netInfo)) {
           netInfo.source = 'httpCache';
         }

@@ -210,7 +210,6 @@ self.addEventListener('message', function(event) {
     const respData = responseMetaData.get(fragUrl.toString()) || {};
     const combinedData = Object.assign(timingData, respData);
 
-    console.log('[SW] Message', event.data, combinedData);
     event.ports[0].postMessage({status:'ok', data: combinedData});
 
   } else {
