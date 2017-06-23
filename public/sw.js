@@ -83,13 +83,8 @@ self.addEventListener('fetch', event => {
       }
 
       // Failing that, try the network if online (but use dynamic cache if network is unavailable or slow)
-
-      const cacheFetchPromise = dynamicCache.match(fetchReq).then(r => {
-        r && responseMetaData.set(fetchReq.url, {source:'swCache'});
-        return r;
-      });
-
-      const netResp = await (function () {
+      const netData = await (function () {
+        const cacheFetchPromise = dynamicCache.match(fetchReq).then(r => [r, 'swCache']);
         if (navigator.onLine) {
           const netFetchPromise = fetch(fetchReq).then(resp => {
 
@@ -100,7 +95,7 @@ self.addEventListener('fetch', event => {
               console.log('Adding '+fetchReq.url+' to static cache');
               staticCache.put(fetchReq, resp.clone());
             }
-            return resp;
+            return [resp, 'network'];
           });
           return Promise.resolve()
             .then(() => Promise.race([netFetchPromise, promiseTimer(NETWORK_TIMEOUT_SHORT, 'reject')]))
@@ -111,10 +106,10 @@ self.addEventListener('fetch', event => {
         }
       }());
 
-      // Debug requests that hit the network
-      //console.log('[SW] Fetch', fetchReq, netResp);
+      if (!netData) throw new Error('No response available');
 
-      if (!netResp) throw new Error('No response available');
+      const [netResp, netSource] = netData;
+      responseMetaData.set(fetchReq.url, {source:netSource});
 
       if (!netResp.headers.get('Fragment')){
          return netResp;
@@ -126,7 +121,7 @@ self.addEventListener('fetch', event => {
         const mergedResp = mergeResponses([head, netResp, foot], netResp.headers);
         console.log('[SW] Merging frag for ' + fetchReq.url);
 
-        // TODO: Why does this error with 'event is already finished'?
+        // TODO: Why does this error with 'event is already finished'
         //event.waitUntil(mergedResp.done);
 
         return mergedResp.response;
