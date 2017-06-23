@@ -80,7 +80,7 @@ self.addEventListener('fetch', event => {
       // Failing that, try the network if online (but use dynamic cache if network is unavailable or slow)
 
       const cacheFetchPromise = dynamicCache.match(fetchReq).then(r => {
-        r && responseMetaData.set(fetchReq.url, {source:'swCache'});
+        r && responseMetaData.set(fetchReq.url, {source:'swCache'}) && console.log('Recording resp from SW cache');
         return r;
       });
 
@@ -128,7 +128,9 @@ self.addEventListener('fetch', event => {
       }
 
     } catch(err) {
-      console.log("[SW] Fetch fail for "+fetchReq.url, fetchReq, err);
+      if (!navigator.onLine) {
+        console.log("[SW] Fetch fail for "+fetchReq.url, fetchReq, err);
+      }
       if (event.request.mode === 'navigate') {
         return caches.match('/shell/offline');
       } else {
@@ -188,7 +190,6 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('message', function(event) {
-  console.log('[SW] Message', event.data);
   if (event.data.name === 'getPerfEntries') {
 
     const fragUrl = new URL(event.data.data.url);
@@ -209,6 +210,7 @@ self.addEventListener('message', function(event) {
     const respData = responseMetaData.get(fragUrl.toString()) || {};
     const combinedData = Object.assign(timingData, respData);
 
+    console.log('[SW] Message', event.data, combinedData);
     event.ports[0].postMessage({status:'ok', data: combinedData});
 
   } else {
