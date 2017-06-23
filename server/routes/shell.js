@@ -14,7 +14,7 @@ router.get('/shell/fragments/footer', (req, res) => {
 });
 
 router.get('/shell/files/dynamic', (req, res, next) => {
-  res.set('Surrogate-Key', 'all indexes');
+  res.set('Surrogate-Key', 'all shell indexes');
   res.json([].concat(
     content.getArticleIDs().map(id => "/articles/"+id+"?frag=1"),
     content.getTopics().map(topic => "/topics/"+topic+"?frag=1"),
@@ -34,6 +34,7 @@ router.get('/shell/not-found', (req, res) => {
 });
 
 router.get('/datacenters', (req, res) => {
+  res.set('Surrogate-Key', 'all shell');
   if (!process.env.FASTLY_API_TOKEN) {
     res.json({});
     return;

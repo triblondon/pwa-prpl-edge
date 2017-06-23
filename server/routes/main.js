@@ -33,7 +33,7 @@ const changeSetToSKeys = changeSet => {
 const sendPurges = skeys => {
   const url = "https://api.fastly.com/service/" + process.env.FASTLY_SERVICE_ID + "/purge";
   const fetchOpts = { method: 'POST', headers: fastlyApiHeaders };
-  console.log("Purging", changeSet, skeys);
+  console.log("Purging", skeys);
   return Promise.all(skeys.map(skey => fetch(url + "/" + skey, fetchOpts).then(resp => resp.json()))).then(() => true);
 };
 
@@ -80,7 +80,7 @@ content.on('contentChange', changeSet => {
 // Enable purging if connected to a Fastly service
 if (process.env.FASTLY_SERVICE_ID) {
   content.on('contentChange', changeSet => sendPurges(changeSetToSKeys(changeSet)));
-  sendPurges(['all']);
+  sendPurges(['shell']);
 }
 
 router.get('/', indexHandler);
