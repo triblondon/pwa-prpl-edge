@@ -2,7 +2,7 @@ window.addEventListener('load', () => {
 
   function initStreamingUpdates() {
     var key = location.pathname.replace(/\/$/, '');
-    var es = new EventSource("/event-stream/"+(key || 'top'));
+    var es = new EventSource("/event-stream");
     es.addEventListener('contentChange', ev => {
       console.log(ev.data, JSON.parse(ev.data));
     });

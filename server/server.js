@@ -39,10 +39,12 @@ app.use((req, res, next) => {
     app.locals.withHeader = app.locals.withFooter = true;
     app.locals.frag = false;
     const pushUrls = serveStatic.getAssetsForPush();
-    res.set('Link', pushUrls.map(url => {
+    const linkHeaders = pushUrls.map(url => {
       const type = url.endsWith('.css') ? "style" : url.endsWith('.svg') ? "image" : "font";
       return '<' + url + '>;rel=preload;x-http2-push-only;as='+type+';';
-    }));
+    });
+    linkHeaders.push('</sw.js>; rel="serviceworker";');
+    res.set('Link', linkHeaders);
   }
   next();
 });

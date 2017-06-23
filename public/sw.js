@@ -9,41 +9,44 @@ function promiseTimer(duration, resolution) {
 
 const NETWORK_TIMEOUT_SHORT = 1 * 1000;
 const NETWORK_TIMEOUT_LONG = 5 * 1000;
-const DYNAMIC_CACHE_UPDATE_INTERVAL = (location.hostname === 'localhost') ? (1 * 1000) : (60 * 60 * 1000);
-const CACHE_NAME = 'v18';
+const DYNAMIC_CACHE_UPDATE_INTERVAL = (location.hostname === 'localhost') ? (10 * 1000) : (60 * 60 * 1000);
+const FRAG_PAGE_PATTERN = /\/((articles|topics)\/)?/;
+const NOCACHE_URL_PATTERN = /^https?\:\/\/www\.google\-analytics\.com(\/r)?\/collect/;
 
 const responseMetaData = new Map();
 let cacheUpdateInProgress = false;
 
 // Adding `install` event listener
-self.addEventListener('install', (event) => {
+self.addEventListener('install', event => {
   console.log('[SW] Install');
 
-  event.waitUntil(
-    Promise.all([
-      fetch("/shell/files/dynamic")
-        .then(resp => resp.json())
-        .then(urlList => caches.open(CACHE_NAME+'-dynamic').then(cache => cache.addAll(urlList)).then(() => urlList.length))
-      ,
-      fetch("/shell/files/static")
-        .then(resp => resp.json())
-        .then(urlList => caches.open(CACHE_NAME+'-static').then(cache => cache.addAll(urlList)).then(() => urlList.length))
-    ])
-    .then(([dynamicLen, staticLen]) => {
-      console.info('[SW] Finished building cache '+CACHE_NAME+'.  Object count: '+staticLen+' static, '+dynamicLen+' dynamic.');
-      return idbKeyval.set('dynamicCacheUpdateTime', Date.now());
-    })
-    .then(() => self.skipWaiting())
-    .catch((error) =>  {
-      console.error('[SW] Failed to build SW cache', error);
-    })
-  );
+  event.waitUntil(async function () {
+    try {
+      const oldCacheID = await idbKeyval.get('cacheID');
+      const newCacheID = (oldCacheID || 0) + 1;
+      await idbKeyval.set('cacheID', newCacheID);
+      await idbKeyval.set('dynamicCacheUpdateTime', 0);
+      const cache = await caches.open('v'+newCacheID+'-static');
+      await cache.addAll([
+        '/shell/fragments/header',
+        '/shell/fragments/footer',
+        '/shell/offline',
+        '/js/sw/merge-responses.js',
+        '/js/sw/idb-keyval.js'
+      ]);
+      console.info('[SW] New cache ID is '+newCacheID);
+      return self.skipWaiting();
+    } catch (e) {
+      console.error('[SW] Failed to build SW cache', e);
+    }
+  }());
 });
 
 self.addEventListener('fetch', event => {
   const fragUrl = new URL(event.request.url);
   fragUrl.searchParams.set('frag', 1);
-  const fetchReq = (event.request.mode === 'navigate') ? new Request(fragUrl.toString(), { mode: 'cors', credentials: 'include' }) : event.request;
+  const useFrag = (event.request.mode === 'navigate' && FRAG_PAGE_PATTERN.test(event.request.url));
+  const fetchReq = useFrag ? new Request(fragUrl.toString(), { mode: 'cors', credentials: 'include' }) : event.request;
 
   // If the performance timings buffer fills up, no more perf data will be recorded.  Clear it on each navigation to ensure we don't hit the limit.
   if (event.request.mode === 'navigate') {
@@ -57,68 +60,93 @@ self.addEventListener('fetch', event => {
   // Cache-first for shell, network-first for content
   event.respondWith(async function () {
     try {
-      const staticCache = await caches.open(CACHE_NAME+'-static');
-      const dynamicCache = await caches.open(CACHE_NAME+'-dynamic');
+      const cacheID = await idbKeyval.get('cacheID');
+      const staticCache = await caches.open('v'+cacheID+'-static');
+      const dynamicCache = await caches.open('v'+cacheID+'-dynamic');
 
       // Pending preloadResponse if it exists (could be frag or not)
       const preloadResp = await event.preloadResponse;
       if (preloadResp) return preloadResp;
 
       // Failing that, try static cache lookups (which should only apply if not a page navigation)
-      const staticResp = await Promise.all([
-        staticCache.match(event.request.url),
-        staticCache.match(fragUrl.toString())
-      ]).then(([r1, r2]) => r1 || r2);
-      if (staticResp) return staticResp;
+      if (event.request.mode !== 'navigate') {
+        const staticResp = await Promise.all([
+          staticCache.match(event.request.url),
+          staticCache.match(fragUrl.toString())
+        ]).then(([r1, r2]) => r1 || r2);
+        if (staticResp) return staticResp;
+      }
 
-      // Failing that, try the network (but use dynamic cache if network is unavailable or slow)
-      const netFetchPromise = fetch(fetchReq);
+      // Failing that, try the network if online (but use dynamic cache if network is unavailable or slow)
+
       const cacheFetchPromise = dynamicCache.match(fetchReq).then(r => {
         r && responseMetaData.set(fetchReq.url, {source:'swCache'});
         return r;
       });
-      const netResp = await Promise.resolve()
-        .then(() => Promise.race([netFetchPromise, promiseTimer(NETWORK_TIMEOUT_SHORT, 'reject')]))
-        .catch(() => Promise.race([netFetchPromise, cacheFetchPromise, promiseTimer(NETWORK_TIMEOUT_LONG, 'reject')]))
-      ;
+
+      const netResp = await (function () {
+        if (navigator.onLine) {
+          const netFetchPromise = fetch(fetchReq).then(resp => {
+
+            // Pick up any static assets that should be cached eg fonts, images, CSS, JS
+            const ccHeader = resp.headers.get('cache-control');
+            const isUncacheable = NOCACHE_URL_PATTERN.test(fetchReq.url) || (ccHeader && ccHeader.includes('no-store'));
+            if (event.request.mode !== 'navigate' && !isUncacheable) {
+              console.log('Adding '+fetchReq.url+' to static cache');
+              staticCache.put(fetchReq, resp.clone());
+            }
+            return resp;
+          });
+          return Promise.resolve()
+            .then(() => Promise.race([netFetchPromise, promiseTimer(NETWORK_TIMEOUT_SHORT, 'reject')]))
+            .catch(() => Promise.race([netFetchPromise, cacheFetchPromise, promiseTimer(NETWORK_TIMEOUT_LONG, 'reject')]))
+          ;
+        } else {
+          return cacheFetchPromise;
+        }
+      }());
 
       // Debug requests that hit the network
       //console.log('[SW] Fetch', fetchReq, netResp);
 
       if (!netResp) throw new Error('No response available');
 
-      if (!netResp.headers.get('Fragment')) return netResp;
+      if (!netResp.headers.get('Fragment')){
+         return netResp;
+      } else {
 
-      // Construct a full page if the response was a frag
-      const head = staticCache.match('/shell/fragments/header');
-      const foot = staticCache.match('/shell/fragments/footer');
-      const mergedResp = mergeResponses([head, netResp, foot], netResp.headers);
-      console.log('[SW] Merging frag for ' + fetchReq.url);
+        // Construct a full page if the response was a frag
+        const head = staticCache.match('/shell/fragments/header');
+        const foot = staticCache.match('/shell/fragments/footer');
+        const mergedResp = mergeResponses([head, netResp, foot], netResp.headers);
+        console.log('[SW] Merging frag for ' + fetchReq.url);
 
-      // TODO: Why does this error with 'event is already finished'?
-      //event.waitUntil(mergedResp.done);
+        // TODO: Why does this error with 'event is already finished'?
+        //event.waitUntil(mergedResp.done);
 
-      return mergedResp.response;
+        return mergedResp.response;
+      }
 
     } catch(err) {
       console.log("[SW] Fetch fail for "+fetchReq.url, fetchReq, err);
       if (event.request.mode === 'navigate') {
         return caches.match('/shell/offline');
       } else {
-        return new Response('', {status: 503, statusText: 'Offline'});
+        return new Response('', {status: 503, statusText: 'Offline from SW'});
       }
     }
   }());
 
 
-  // Update cache if needed
-  /*if (!cacheUpdateInProgress) {
+  // Update dynamic cache if needed
+  if (!cacheUpdateInProgress && navigator.onLine && event.request.mode === 'navigate') {
     (async () => {
       const lastUpdateTime = await idbKeyval.get('dynamicCacheUpdateTime');
       if (!lastUpdateTime || lastUpdateTime < (Date.now() - DYNAMIC_CACHE_UPDATE_INTERVAL)) {
         console.log('[SW] Incrementally updating dynamic cache...');
         cacheUpdateInProgress = true;
-        const cache = await caches.open(CACHE_NAME+'-dynamic');
+        const cacheID = await idbKeyval.get('cacheID');
+        const cache = await caches.open('v'+cacheID+'-dynamic');
         const newUrlList = await fetch("/shell/files/dynamic").then(resp => resp.json());
         const existingUrlList = await cache.keys().then(reqs => reqs.map(r => r.url.replace(/https?\:\/\/[^\/]+/, '')));
         const urlsToAdd = newUrlList.filter(u => !existingUrlList.includes(u));
@@ -129,7 +157,7 @@ self.addEventListener('fetch', event => {
         cacheUpdateInProgress = false;
       }
     })();
-  }*/
+  }
 });
 
 
@@ -143,21 +171,20 @@ self.addEventListener('activate', (event) => {
   //}
 
   // Remove outdated caches
-  event.waitUntil(
-    caches.keys()
-      .then(cacheNames => Promise.all(
-        cacheNames.map(existingCacheName => {
-          if (!existingCacheName.startsWith(CACHE_NAME)) {
-            console.log("[SW] Deleted outdated cache called " + existingCacheName);
-            return caches.delete(existingCacheName);
-          }
-        })
-      ))
-      .then(() => {
-        // Activate current one instead of waiting for the old one to finish
-        return self.clients.claim();
-      })
-  );
+  event.waitUntil(async function() {
+    const cacheID = await idbKeyval.get('cacheID');
+    const cachePrefix = 'v'+cacheID;
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map(existingCacheName => {
+      if (!existingCacheName.startsWith(cachePrefix)) {
+        console.log("[SW] Deleted outdated cache called " + existingCacheName);
+        return caches.delete(existingCacheName);
+      }
+    }));
+
+    // Activate current one instead of waiting for the old one to finish
+    return self.clients.claim();
+  }());
 });
 
 self.addEventListener('message', function(event) {

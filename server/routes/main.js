@@ -87,6 +87,6 @@ router.get('/', indexHandler);
 router.get('/topics/:topic', indexHandler);
 router.get('/articles/:id', articleHandler);
 router.get('/refresh-content', refreshHandler);
-router.get('/event-stream/:key', streamHandler);
+router.get('/event-stream', streamHandler);
 
 module.exports = router;

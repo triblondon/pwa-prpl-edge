@@ -9,6 +9,7 @@ const SOURCE_DIR = path.join(__dirname, '../../public');
 const BUILD_DIR = path.join(__dirname, '../../__build/public');
 const TEXT_TYPES = ['image/svg+xml', 'application/json', 'application/javascript', 'text/css', 'text/html', 'text/plain'];
 
+// Push only assets that are required for above-the-fold rendering
 const pushAssets = [
   "/css/ux-platform.css",
   "/css/tippy.css",
