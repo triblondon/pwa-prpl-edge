@@ -214,6 +214,7 @@ self.addEventListener('message', function(event) {
     // Merge any data from the response metadata map
     const respData = responseMetaData.get(fragUrl.toString()) || {};
     const combinedData = Object.assign(timingData, respData);
+    responseMetaData.delete(fragUrl.toString());
 
     event.ports[0].postMessage({status:'ok', data: combinedData});
 
