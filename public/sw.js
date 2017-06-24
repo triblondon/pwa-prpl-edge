@@ -9,10 +9,10 @@ function promiseTimer(duration, resolution) {
 
 function parseServerTiming(str) {
   return str
-    .split(',')
+    .split(/\s*,\s*/)
     .reduce((out, segment) => {
       console.log(segment);
-      const [k, v] = segment.split(/[=;]\s*/, 2);
+      const [k, v] = segment.split(/\s*[=;]\s*/, 2);
       out[k] = decodeURIComponent(v);
       return out;
     }, {})
