@@ -11,7 +11,6 @@ function parseServerTiming(str) {
   return str
     .split(/\s*,\s*/)
     .reduce((out, segment) => {
-      console.log(segment);
       const [k, v] = segment.split(/\s*[=;]\s*/, 2);
       out[k] = decodeURIComponent(v);
       return out;
