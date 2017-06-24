@@ -2,6 +2,8 @@
 
 ## Priorities
 
+- [ ] Highlight new articles
+- [ ] Show toast when new articles are available
 - [ ] Test purging using surrogate keys
 
 #### Loading scenarios

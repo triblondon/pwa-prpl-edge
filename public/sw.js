@@ -7,6 +7,18 @@ function promiseTimer(duration, resolution) {
   });
 }
 
+function parseServerTiming(str) {
+  return str
+    .split(',')
+    .reduce((out, segment) => {
+      console.log(segment);
+      const [k, v] = segment.split(/[=;]\s*/, 2);
+      out[k] = decodeURIComponent(v);
+      return out;
+    }, {})
+  ;
+}
+
 const NETWORK_TIMEOUT_SHORT = 1 * 1000;
 const NETWORK_TIMEOUT_LONG = 5 * 1000;
 const DYNAMIC_CACHE_UPDATE_INTERVAL = (location.hostname === 'localhost') ? (10 * 1000) : (60 * 60 * 1000);
@@ -64,26 +76,30 @@ self.addEventListener('fetch', event => {
 
   // Cache-first for shell, network-first for content
   event.respondWith(async function () {
-    try {
-      const cacheID = await idbKeyval.get('cacheID');
-      const staticCache = await caches.open('v'+cacheID+'-static');
-      const dynamicCache = await caches.open('v'+cacheID+'-dynamic');
+    const cacheID = await idbKeyval.get('cacheID');
+    const staticCache = await caches.open('v'+cacheID+'-static');
+    const dynamicCache = await caches.open('v'+cacheID+'-dynamic');
+
+    const contentRespPromise = Promise.resolve(undefined)
 
       // Pending preloadResponse if it exists (could be frag or not)
-      const preloadResp = await event.preloadResponse;
-      if (preloadResp) return preloadResp;
+      //.then(r => r || Promise.resolve(event.preloadResponse))
 
       // Failing that, try static cache lookups (which should only apply if not a page navigation)
-      if (event.request.mode !== 'navigate') {
-        const staticResp = await Promise.all([
-          staticCache.match(event.request.url),
-          staticCache.match(fragUrl.toString())
-        ]).then(([r1, r2]) => r1 || r2);
-        if (staticResp) return staticResp;
-      }
+      .then(r => r || (function() {
+        if (event.request.mode !== 'navigate') {
+          return Promise.all([
+            staticCache.match(event.request.url),
+            staticCache.match(fragUrl.toString())
+          ]).then(([r1, r2]) => {
+            const r = r1 || r2;
+            if (r) return [r, 'swStaticCache'];
+          });
+        }
+      }()))
 
       // Failing that, try the network if online (but use dynamic cache if network is unavailable or slow)
-      const netData = await (function () {
+      .then(r => r || (function () {
         const cacheFetchPromise = dynamicCache.match(fetchReq).then(r => [r, 'swCache']);
         if (navigator.onLine) {
           const netFetchPromise = fetch(fetchReq).then(resp => {
@@ -104,39 +120,44 @@ self.addEventListener('fetch', event => {
         } else {
           return cacheFetchPromise;
         }
-      }());
+      }()))
 
-      if (!netData) throw new Error('No response available');
+      .then(r => {
+        if (!r) throw new Error('No response available');
+        const [resp, source] = r;
+        const useServerTiming = (source === 'network' && resp.headers.get('Server-Timing'));
+        responseMetaData.set(fetchReq.url, useServerTiming ? parseServerTiming(resp.headers.get('Server-Timing')) : {source:source});
+        return resp;
+      })
 
-      const [netResp, netSource] = netData;
-      responseMetaData.set(fetchReq.url, {source:netSource});
+      .catch(err => {
+        if (!navigator.onLine) {
+          console.log("[SW] Fetch fail for "+fetchReq.url, fetchReq, err);
+        }
+        if (event.request.mode === 'navigate') {
+          return caches.match('/shell/offline');
+        } else {
+          return new Response('', {status: 503, statusText: 'Offline from SW'});
+        }
+      })
+    ;
 
-      if (!netResp.headers.get('Fragment')){
-         return netResp;
-      } else {
+    if (!useFrag) {
+      return contentRespPromise;
+    } else {
 
-        // Construct a full page if the response was a frag
-        const head = staticCache.match('/shell/fragments/header');
-        const foot = staticCache.match('/shell/fragments/footer');
-        const mergedResp = mergeResponses([head, netResp, foot], netResp.headers);
-        console.log('[SW] Merging frag for ' + fetchReq.url);
+      // Construct a full page if the response was a frag
+      const head = staticCache.match('/shell/fragments/header');
+      const foot = staticCache.match('/shell/fragments/footer');
+      const mergedResp = mergeResponses([head, contentRespPromise, foot], {'content-type':'text/html'});
+      console.log('[SW] Merging frag for ' + fetchReq.url);
 
-        // TODO: Why does this error with 'event is already finished'
-        //event.waitUntil(mergedResp.done);
+      // TODO: Why does this error with 'event is already finished'
+      //event.waitUntil(mergedResp.done);
 
-        return mergedResp.response;
-      }
-
-    } catch(err) {
-      if (!navigator.onLine) {
-        console.log("[SW] Fetch fail for "+fetchReq.url, fetchReq, err);
-      }
-      if (event.request.mode === 'navigate') {
-        return caches.match('/shell/offline');
-      } else {
-        return new Response('', {status: 503, statusText: 'Offline from SW'});
-      }
+      return mergedResp.response;
     }
+
   }());
 
 
@@ -190,12 +211,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('message', function(event) {
-  if (event.data.name === 'getPerfEntries') {
+  if (event.data.name === 'getRespMeta') {
 
     const fragUrl = new URL(event.data.data.url);
     fragUrl.searchParams.set('frag', 1);
 
-    // Use frag URL here
     const entries = self.performance.getEntriesByName(fragUrl.toString());
 
     // Get latest resource perf entry (there should only be one, if buffer is cleared on navigate)
