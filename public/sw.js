@@ -12,7 +12,16 @@ function parseServerTiming(str) {
     .split(/\s*,\s*/)
     .reduce((out, segment) => {
       const [k, v] = segment.split(/\s*[=;]\s*/, 2);
-      out[k] = decodeURIComponent(v);
+      const decoded = decodeURIComponent(v);
+      if (/^\d+(\.\d+)?$/.test(decoded)) {
+        out[k] = parseFloat(decoded);
+       } else if (decoded.toLowerCase() === 'true') {
+        out[k] = true;
+       } else if (decoded.toLowerCase() === 'false') {
+        out[k] = false;
+       } else {
+         out[k] = decoded;
+       }
       return out;
     }, {})
   ;
