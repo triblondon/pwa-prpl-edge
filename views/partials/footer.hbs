@@ -32,13 +32,12 @@
           <ul>
             <li data-netinfo='edgeCity'>Locating...</li>
             <li data-netinfo='edgeID'></li>
-            <li data-netinfo='edgeProcessingTimeMS' title='Fastly processing time'><i></i>ms</li>
           </ul>
         </div>
         <div class='netinfo__conn netinfo__conn--backend'>
           <div class='netinfo__connlabel'></div>
           <div class='netinfo__connline netinfo__connline--right'></div>
-          <div class='netinfo__connlabel'><span data-netinfo='edgeObjectState'></span></div>
+          <div class='netinfo__connlabel'><span data-netinfo='edgeObjectState'></span> <span data-netinfo='edgeProcessingTimeMS' title='Connection time to backend + Fastly overhead'>(<i></i>ms)</span></div>
           <div class='netinfo__connline netinfo__connline--left'></div>
           <div class='netinfo__connlabel'></div>
           <div class='netinfo__connlabel netinfo__connlabel--bottom' data-netinfo='backendDistance'><i></i>km</div>
@@ -47,7 +46,7 @@
         <div class='netinfo__hit-meta netinfo__descr'>
           <div class='netinfo__descr-block'>
             <div data-netinfo='edgeObjectState'></div>
-            <div class='netinfo__minor' data-netinfo='edgeObjectStateDesc'></div>
+            <div class='netinfo__minor' data-netinfo='edgeObjectStateDesc'></div> <span data-netinfo='edgeProcessingTimeMS' title='Fastly processing time'>(<i></i>ms)</span>
           </div>
           <div class='netinfo__connlabel netinfo__connlabel--bottom' data-netinfo='backendDistance'><i></i>km</div>
        </div>

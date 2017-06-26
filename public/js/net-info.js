@@ -93,23 +93,23 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
       if (netInfo.edgeCacheState) {
         netInfo.edgeCacheState = netInfo.edgeCacheState.toLowerCase();
         if (netInfo.edgeCacheState.startsWith('miss')) {
-          netInfo.edgeObjectState = 'Not in cache (MISS)';
+          netInfo.edgeObjectState = 'Not in cache';
         } else if (netInfo.edgeCacheState.startsWith('pass') || netInfo.edgeCacheState.startsWith('hitpass')) {
-          netInfo.edgeObjectState = 'Not eligible for caching (PASS)';
+          netInfo.edgeObjectState = 'Not cache eligible (PASS)';
         } else if (netInfo.edgeCacheState.startsWith('hit-stale')) {
           if (netInfo.edgeObjRemainingSWR) {
-            netInfo.edgeObjectState = 'Stale while revalidating (HIT)';
-            netInfo.edgeObjectStateDesc = 'Revalidation time remaining: '+period(netInfo.edgeObjRemainingSWR);
+            netInfo.edgeObjectState = 'Stale (revalidating...)';
+            netInfo.edgeObjectStateDesc = period(netInfo.edgeObjRemainingSWR) + ' remaining';
           } else if (netInfo.edgeObjRemainingSIE) {
-            netInfo.edgeObjectState = 'Stale due to origin failure (HIT)';
-            netInfo.edgeObjectStateDesc = 'Using while origin down for up to another '+period(netInfo.edgeObjRemainingSIE);
+            netInfo.edgeObjectState = 'Stale (origin offline)';
+            netInfo.edgeObjectStateDesc = period(netInfo.edgeObjRemainingSIE) + ' remaining';
           } else {
-            netInfo.edgeObjectState = 'Stale HIT';
+            netInfo.edgeObjectState = 'Stale';
             netInfo.edgeObjectStateDesc = 'Unknown reason for stale hit';
           }
         } else if (netInfo.edgeCacheState.startsWith('hit')) {
-          netInfo.edgeObjectState = 'Fresh in cache (HIT)';
-          netInfo.edgeObjectStateDesc = netInfo.edgeObjCacheHitCount+' hits, remaining TTL '+period(netInfo.edgeObjRemainingTTL);
+          netInfo.edgeObjectState = 'From cache';
+          netInfo.edgeObjectStateDesc = netInfo.edgeObjCacheHitCount+' hits, '+period(netInfo.edgeObjRemainingTTL)+' remaining';
         } else {
           netInfo.edgeObjectState = netInfo.edgeCacheState;
         }
