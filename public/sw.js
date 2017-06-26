@@ -15,13 +15,15 @@ function parseServerTiming(str) {
       const decoded = decodeURIComponent(v);
       if (/^\d+(\.\d+)?$/.test(decoded)) {
         out[k] = parseFloat(decoded);
-       } else if (decoded.toLowerCase() === 'true') {
+      } else if (/^\(?null\)?$/.test(decoded)) {
+        out[k] = null;
+      } else if (decoded.toLowerCase() === 'true') {
         out[k] = true;
-       } else if (decoded.toLowerCase() === 'false') {
+      } else if (decoded.toLowerCase() === 'false') {
         out[k] = false;
-       } else {
-         out[k] = decoded;
-       }
+      } else {
+        out[k] = decoded;
+      }
       return out;
     }, {})
   ;
