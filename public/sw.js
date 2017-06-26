@@ -13,7 +13,7 @@ function parseServerTiming(str) {
     .reduce((out, segment) => {
       const [k, v] = segment.split(/\s*[=;]\s*/, 2);
       const decoded = decodeURIComponent(v);
-      if (/^\d+(\.\d+)?$/.test(decoded)) {
+      if (/^\-?\d+(\.\d+)?$/.test(decoded)) {
         out[k] = parseFloat(decoded);
       } else if (/^\(?null\)?$/.test(decoded)) {
         out[k] = null;
@@ -32,7 +32,7 @@ function parseServerTiming(str) {
 const NETWORK_TIMEOUT_SHORT = 1 * 1000;
 const NETWORK_TIMEOUT_LONG = 5 * 1000;
 const DYNAMIC_CACHE_UPDATE_INTERVAL = (location.hostname === 'localhost') ? (10 * 1000) : (60 * 60 * 1000);
-const FRAG_PAGE_PATTERN = /\/((articles|topics)\/)?/;
+const FRAG_PAGE_PATTERN = /^\/((articles|topics)\/)?/;
 const NOCACHE_URL_PATTERN = /^https?\:\/\/www\.google\-analytics\.com(\/r)?\/collect/;
 
 const responseMetaData = new Map();

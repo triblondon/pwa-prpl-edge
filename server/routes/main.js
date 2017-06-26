@@ -88,5 +88,9 @@ router.get('/topics/:topic', indexHandler);
 router.get('/articles/:id', articleHandler);
 router.get('/refresh-content', refreshHandler);
 router.get('/event-stream', streamHandler);
+router.get('/health', (req, res) => {
+  res.set('Cache-Control', 'max-age=0; private');
+  res.end('OK');
+});
 
 module.exports = router;
