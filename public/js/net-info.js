@@ -102,7 +102,7 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
           // If the hit is on a cluster node, data captured in vcl_hit will be blank, which includes edgeObjRemainingSIE.  We can infer an SIE hit if the original TTL+SIE > current age, the backend is unhealthy or there was an attempted backend fetch, and there was a positive original SIE time.
           if (netInfo.edgeObjRemainingSIE || (!netInfo.edgeObjRemainingSIE && netInfo.edgeObjSIE && netInfo.edgeObjAge < (netInfo.edgeObjTTL+netInfo.edgeObjSIE) && (!netInfo.backendHealthy || netInfo.edgeElapsedTimeMS > 50) )) {
             netInfo.edgeObjectState = 'Stale (origin failure)';
-            netInfo.edgeObjectStateDesc = period(netInfo.edgeObjRemainingSIE) + ' remaining';
+            netInfo.edgeObjectStateDesc = netInfo.edgeObjRemainingSIE ? period(netInfo.edgeObjRemainingSIE) + ' remaining' : '';
 
           // For SWR, we can infer that the stale hit was stale due to SWR if the original TTL+SWR > current age, and there was a positive original SWR time.  In practice, most SWR scenarios arise from soft-purging an object, which means the age will most likely be lower than the orig TTL, even before adding the SWR time.
           } else if ((netInfo.edgeObjRemainingSWR || (!netInfo.edgeObjRemainingSWR && netInfo.edgeObjSWR && netInfo.edgeObjAge < (netInfo.edgeObjTTL+netInfo.edgeObjSWR)))) {
@@ -114,8 +114,9 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
             netInfo.edgeObjectStateDesc = 'Unknown reason for stale hit';
           }
         } else if (netInfo.edgeCacheState.startsWith('hit')) {
+          const rem = netInfo.edgeObjRemainingTTL || (netInfo.edgeObjTTL - netInfo.edgeObjAge);
           netInfo.edgeObjectState = 'From cache';
-          netInfo.edgeObjectStateDesc = netInfo.edgeObjCacheHitCount+' hits, '+period(netInfo.edgeObjRemainingTTL)+' remaining';
+          netInfo.edgeObjectStateDesc = netInfo.edgeObjCacheHitCount+' hits, '+period(rem)+' remaining';
         } else {
           netInfo.edgeObjectState = netInfo.edgeCacheState;
         }
