@@ -72,6 +72,7 @@ function getResponseMetadata() {
 
 if (!navigator.onLine || document.querySelector('.offline-notice')) {
     document.getElementById('netinfo').classList.add('netinfo--offline');
+    document.getElementById('netinfo').classList.remove('hidden');
 } else {
 
   const netInfo = {};
@@ -171,6 +172,7 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
         } else {
           netInfo.edgeProcessingTimeMS = (netInfo.edgeElapsedTimeMS || 0) - (netInfo.backendExecTimeMS || 0);
         }
+        document.getElementById('netinfo').classList.remove('hidden');
         document.getElementById('netinfo').classList.add(cacheClass);
         document.getElementById('netinfo').querySelectorAll('[data-netinfo]').forEach(el => {
           if (netInfo[el.dataset.netinfo] === undefined || Number.isNaN(netInfo[el.dataset.netinfo])) {
