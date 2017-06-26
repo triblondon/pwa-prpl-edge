@@ -65,9 +65,10 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
-  const fragUrl = new URL(event.request.url);
+  const url = new URL(event.request.url);
+  const fragUrl = new URL(url);
   fragUrl.searchParams.set('frag', 1);
-  const useFrag = (event.request.mode === 'navigate' && FRAG_PAGE_PATTERN.test(event.request.url));
+  const useFrag = (event.request.mode === 'navigate' && FRAG_PAGE_PATTERN.test(url.pathname));
   const fetchReq = useFrag ? new Request(fragUrl.toString(), { mode: 'cors', credentials: 'include' }) : event.request;
 
   // Disable serviceworker for event streams
@@ -92,17 +93,13 @@ self.addEventListener('fetch', event => {
 
     const contentRespPromise = Promise.resolve(undefined)
 
-      // Pending preloadResponse if it exists (could be frag or not)
+      // Pending preloadResponse if it exists (TODO: could be frag or not)
       //.then(r => r || Promise.resolve(event.preloadResponse))
 
       // Failing that, try static cache lookups (which should only apply if not a page navigation)
       .then(r => r || (function() {
         if (event.request.mode !== 'navigate') {
-          return Promise.all([
-            staticCache.match(event.request.url),
-            staticCache.match(fragUrl.toString())
-          ]).then(([r1, r2]) => {
-            const r = r1 || r2;
+          return staticCache.match(fetchReq.url).then(r => {
             if (r) return [r, 'swStaticCache'];
           });
         }
