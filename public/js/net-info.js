@@ -104,7 +104,7 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
             netInfo.edgeObjectStateDesc = period(netInfo.edgeObjRemainingSIE) + ' remaining';
 
           // For SWR, we can infer that the stale hit was stale due to SWR if the original TTL+SWR > current age, and there was a positive original SWR time.  In practice, most SWR scenarios arise from soft-purging an object, which means the age will most likely be lower than the orig TTL, even before adding the SWR time.
-          if ((netInfo.edgeObjRemainingSWR || (!netInfo.edgeObjRemainingSWR && netInfo.edgeObjSWR && netInfo.edgeObjAge < (netInfo.edgeObjTTL+netInfo.edgeObjSWR)))) {
+          } else if ((netInfo.edgeObjRemainingSWR || (!netInfo.edgeObjRemainingSWR && netInfo.edgeObjSWR && netInfo.edgeObjAge < (netInfo.edgeObjTTL+netInfo.edgeObjSWR)))) {
             netInfo.edgeObjectState = 'Stale (revalidating...)';
             netInfo.edgeObjectStateDesc = netInfo.edgeObjRemainingSWR ? period(netInfo.edgeObjRemainingSWR) + ' remaining' : '';
 
