@@ -1,8 +1,8 @@
     </div> <!-- /app__content -->
 
-    <footer class='footer'>
+    <footer class='footer' id='netinfo'>
       <h2>How this page got to you</h2>
-      <div class='netinfo' id='netinfo'>
+      <div class='netinfo'>
         <div class='netinfo__you netinfo__node'>
           <img src='{{getVersionedPath "/images/icons/laptop.svg"}}' alt='Laptop representing you' />
           <h3>You</h3>
@@ -46,7 +46,7 @@
         <div class='netinfo__hit-meta netinfo__descr'>
           <div class='netinfo__descr-block'>
             <div data-netinfo='edgeObjectState'></div>
-            <div class='netinfo__minor' data-netinfo='edgeObjectStateDesc'></div> <span data-netinfo='edgeProcessingTimeMS' title='Fastly processing time'>(<i></i>ms)</span>
+            <div class='netinfo__minor'><span data-netinfo='edgeObjectStateDesc'></span> <span data-netinfo='edgeProcessingTimeMS' title='Fastly processing time'>(<i></i>ms)</span></div>
           </div>
           <div class='netinfo__connlabel netinfo__connlabel--bottom' data-netinfo='backendDistance'><i></i>km</div>
        </div>
