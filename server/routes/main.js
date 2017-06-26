@@ -55,7 +55,7 @@ const indexHandler = (req, res) => {
   res.render('news-index', locals );
 };
 
-const articleHandler = (req, res) => {
+const articleHandler = (req, res, next) => {
   const article = content.getArticle(req.params.id);
   if (!article) return next();
   res.set('Surrogate-Key', 'all articles articles/'+article.id);
