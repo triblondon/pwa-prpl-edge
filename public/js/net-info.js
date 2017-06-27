@@ -79,18 +79,21 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
 
   getResponseMetadata()
     .then(data => {
-      Object.assign(netInfo, data, {
-        dnsTimeMS: Math.round(data.domainLookupEnd - data.domainLookupStart),
-        tcpTimeMS: Math.round(data.connectEnd - data.connectStart),
-        reqTimeMS: Math.round(data.responseStart - data.requestStart),
-        resTimeMS: Math.round(data.responseEnd - data.responseStart),
-        navigationStart: data.navigationStart || data.fetchStart
-      });
-      if (netInfo.transferSize === 0 && !("source" in netInfo)) {
-        netInfo.source = 'httpCache';
+      Object.assign(netInfo, data);
+      if (data.requestStart) {
+        Object.assign(netInfo, {
+          dnsTimeMS: Math.round(data.domainLookupEnd - data.domainLookupStart),
+          tcpTimeMS: Math.round(data.connectEnd - data.connectStart),
+          reqTimeMS: Math.round(data.responseStart - data.requestStart),
+          resTimeMS: Math.round(data.responseEnd - data.responseStart),
+          navigationStart: data.navigationStart || data.fetchStart
+        });
+        if (netInfo.transferSize === 0 && !("source" in netInfo)) {
+          netInfo.source = 'httpCache';
+        }
+        netInfo.overheadMS = netInfo.responseEnd - netInfo.navigationStart - netInfo.dnsTimeMS - netInfo.tcpTimeMS - netInfo.reqTimeMS - netInfo.resTimeMS;
+        netInfo.sendTimeMS = (netInfo.dnsTimeMS + netInfo.tcpTimeMS + netInfo.reqTimeMS) - (netInfo.edgeElapsedTimeMS || 0);
       }
-      netInfo.overheadMS = netInfo.responseEnd - netInfo.navigationStart - netInfo.dnsTimeMS - netInfo.tcpTimeMS - netInfo.reqTimeMS - netInfo.resTimeMS;
-      netInfo.sendTimeMS = (netInfo.dnsTimeMS + netInfo.tcpTimeMS + netInfo.reqTimeMS) - (netInfo.edgeElapsedTimeMS || 0);
       if (netInfo.edgeCacheState) {
         netInfo.edgeCacheState = netInfo.edgeCacheState.toLowerCase();
         if (netInfo.edgeCacheState.startsWith('miss')) {
@@ -152,8 +155,11 @@ if (!navigator.onLine || document.querySelector('.offline-notice')) {
 
     // Calculate derived data and populate page
     .then(() => {
-      if (netInfo.source === 'swCache') {
+      if (!netInfo.reqTimeMS && !netInfo.edgeCacheState) {
+        // DO nothing: not enough data to show debug
+      } else if (netInfo.source === 'swCache') {
         document.getElementById('netinfo').classList.add('netinfo--offline');
+        document.getElementById('netinfo').classList.remove('hidden');
       } else {
         if ('clientLat' in netInfo && 'edgeLat' in netInfo) {
           netInfo.clientDistance = Math.round(distance(netInfo.clientLat, netInfo.clientLng, netInfo.edgeLat, netInfo.edgeLng, 'K'));
