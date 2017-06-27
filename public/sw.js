@@ -68,7 +68,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   const fragUrl = new URL(url);
   fragUrl.searchParams.set('frag', 1);
-  const useFrag = (event.request.mode === 'navigate' && FRAG_PAGE_PATTERN.test(url.pathname));
+  const useFrag = ('ReadableStream' in self && event.request.mode === 'navigate' && FRAG_PAGE_PATTERN.test(url.pathname));
   const fetchReq = useFrag ? new Request(fragUrl.toString(), { mode: 'cors', credentials: 'include' }) : event.request;
 
   // Disable serviceworker for event streams
@@ -79,7 +79,9 @@ self.addEventListener('fetch', event => {
   // If the performance timings buffer fills up, no more perf data will be recorded.  Clear it on each navigation to ensure we don't hit the limit.
   if (event.request.mode === 'navigate') {
     responseMetaData.clear();
-    self.performance.clearResourceTimings();
+    if ('clearResourceTimings' in self.performance) {
+      self.performance.clearResourceTimings();
+    }
     if ('clearServerTimings' in self.performance) {
       self.performance.clearServerTimings();
     }
@@ -223,7 +225,10 @@ self.addEventListener('message', function(event) {
     const fragUrl = new URL(event.data.data.url);
     fragUrl.searchParams.set('frag', 1);
 
-    const entries = self.performance.getEntriesByName(fragUrl.toString());
+    const entries = [].concat(
+      self.performance.getEntriesByName(event.data.data.url),
+      self.performance.getEntriesByName(fragUrl.toString())
+    );
 
     // Get latest resource perf entry (there should only be one, if buffer is cleared on navigate)
     // TODO: hacky. See https://developers.google.com/web/updates/2015/07/measuring-performance-in-a-service-worker?google_comment_id=z13mv5i4vw31gjpii04cjh4rhufuzfob34w
